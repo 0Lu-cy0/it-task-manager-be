@@ -1,22 +1,22 @@
 module.exports = {
   env: { es2020: true, node: true },
   extends: [
-    'eslint:recommended'
+    'eslint:recommended',
   ],
   parser: '@babel/eslint-parser',
   parserOptions: {
     ecmaVersion: 'latest',
     sourceType: 'module',
     requireConfigFile: false,
-    allowImportExportEverywhere: true
+    allowImportExportEverywhere: true,
   },
-  plugins: [],
+  plugins: ['unused-imports'],
   rules: {
     // Common
     'no-console': 1,
-    'no-extra-boolean-cast': 0,
     'no-lonely-if': 1,
-    'no-unused-vars': 1,
+    'no-unused-vars': ['warn', { vars: 'all', args: 'after-used', ignoreRestSiblings: false }],
+    'unused-imports/no-unused-imports': 'warn',
     'no-trailing-spaces': 1,
     'no-multi-spaces': 1,
     'no-multiple-empty-lines': 1,
@@ -29,8 +29,10 @@ module.exports = {
     'linebreak-style': 0,
     'no-unexpected-multiline': 'warn',
     'keyword-spacing': 1,
-    'comma-dangle': 1,
+    'comma-dangle': ['warn', 'always-multiline'],
     'comma-spacing': 1,
-    'arrow-spacing': 1
-  }
+    'arrow-spacing': 1,
+    'eol-last': ['error', 'always'],
+
+  },
 }
