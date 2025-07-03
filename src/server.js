@@ -1,9 +1,3 @@
-/**
- * Updated by trungquandev.com's author on August 17 2023
- * YouTube: https://youtube.com/@trungquandev
- * "A bit of fragrance clings to the hand that gives flowers!"
- */
-
 import express from 'express'
 import { mapOrder } from '~/utils/sorts.js'
 
@@ -23,10 +17,10 @@ app.get('/', (req, res) => {
     ['id-5', 'id-4', 'id-2', 'id-3', 'id-1'],
     'id'
   ))
-  res.end('<h1>Hello World!</h1><hr>')
+  res.end('<h1Cat2004</h1><hr>')
 })
 
 app.listen(port, hostname, () => {
   // eslint-disable-next-line no-console
-  console.log(`Hello Trung Quan Dev, I am running at ${hostname}:${port}/`)
+  console.log(`Hello Cat2004, I am running at ${hostname}:${port}/`)
 })
