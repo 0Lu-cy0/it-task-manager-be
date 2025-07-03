@@ -8,6 +8,7 @@ const port = 8181
 
 app.get('/', (req, res) => {
   // Test Absolute import mapOrder
+  // eslint-disable-next-line no-console
   console.log(mapOrder(
     [{ id: 'id-1', name: 'One' },
     { id: 'id-2', name: 'Two' },
@@ -15,12 +16,12 @@ app.get('/', (req, res) => {
     { id: 'id-4', name: 'Four' },
     { id: 'id-5', name: 'Five' }],
     ['id-5', 'id-4', 'id-2', 'id-3', 'id-1'],
-    'id'
+    'id',
   ))
-  res.end('<h1Cat2004</h1><hr>')
+  res.end('<h1>Cat2004</h1>')
 })
 
 app.listen(port, hostname, () => {
   // eslint-disable-next-line no-console
-  console.log(`Hello Cat2004, I am running at ${hostname}:${port}/`)
+  console.log(`Hello Cat2004, I am running at http://${hostname}:${port}/`)
 })
