@@ -1,27 +1,46 @@
+/* eslint-disable no-console */
 import express from 'express'
-import { mapOrder } from '~/utils/sorts.js'
+import exitHook from 'async-exit-hook'
+import { CLOSE_DB, CONNECT_DB } from '~/config/mongodb'
+import { env } from '~/config/environment'
 
-const app = express()
+const START_SERVER = () => {
+  const app = express()
 
-const hostname = 'localhost'
-const port = 8181
+  app.get('/', async (req, res) => {
+    res.end('<h1>Cat2004</h1>')
+  })
 
-app.get('/', (req, res) => {
-  // Test Absolute import mapOrder
-  // eslint-disable-next-line no-console
-  console.log(mapOrder(
-    [{ id: 'id-1', name: 'One' },
-    { id: 'id-2', name: 'Two' },
-    { id: 'id-3', name: 'Three' },
-    { id: 'id-4', name: 'Four' },
-    { id: 'id-5', name: 'Five' }],
-    ['id-5', 'id-4', 'id-2', 'id-3', 'id-1'],
-    'id',
-  ))
-  res.end('<h1>Cat2004</h1>')
-})
+  app.listen(env.APP_PORT, env.APP_HOST, () => {
+    // eslint-disable-next-line no-console
+    console.log(`3. Hello ${env.AUTHOR}, I am running at http://${env.APP_HOST}:${env.APP_PORT}/`)
+  })
+  //Thực hiện các tác vụ cleanup trước khi dừng server lại
+  exitHook(() => {
+    console.log('\n4. Goodbye Cat2004 :>>>, never see again !-_-!')
+    CLOSE_DB()
+  })
+}
 
-app.listen(port, hostname, () => {
-  // eslint-disable-next-line no-console
-  console.log(`Hello Cat2004, I am running at http://${hostname}:${port}/`)
-})
+(async () => {
+  try {
+    console.log('1. Connecting to MongoDB Cloud Atlas...')
+    await CONNECT_DB()
+    console.log('2. Connected to MongoDB Cloud Atlas!')
+    //Khởi động Server Back-end sau-khi-đã Connect-Database- thành công
+    START_SERVER()
+  } catch (error) {
+    console.error(error)
+    process.exit(0)
+  }
+})()
+
+// CONNECT_DB()
+//   .then(() => 'Đã kết nối tới MongoDB Cloud Atlat!')
+//   .then(() => START_SERVER())
+//   .catch(err => {
+//     console.error(err)
+//     process.exit(0)
+//   })
+
+
