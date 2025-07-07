@@ -2,7 +2,6 @@ import { StatusCodes } from 'http-status-codes'
 import Joi from 'joi'
 
 const createNew = async (req, res, next) => {
-
   const trueCondition = Joi.object({
     tittle: Joi.string().required().min(5).max(50).trim().strict().messages({
       'any.required': 'Title is required(by Cat2004)',
@@ -16,8 +15,7 @@ const createNew = async (req, res, next) => {
 
   try {
     await trueCondition.validateAsync(req.body, { abortEarly: false })
-    res.status(StatusCodes.CREATED).json({ message: 'API create new post from validation' })
-    // next()
+    next()
   } catch (error) {
     res.status(StatusCodes.UNPROCESSABLE_ENTITY).json({
       errors: new Error(error).message,
