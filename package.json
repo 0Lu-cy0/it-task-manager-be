@@ -17,7 +17,10 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.22.10",
-    "express": "^4.18.2"
+    "async-exit-hook": "^2.0.1",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "mongodb": "^6.0.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.22.10",
@@ -26,6 +29,7 @@
     "@babel/node": "^7.22.10",
     "@babel/plugin-transform-runtime": "^7.22.10",
     "@babel/preset-env": "^7.22.10",
+    "@types/node": "^24.0.10",
     "babel-plugin-module-resolver": "^5.0.0",
     "eslint": "^8.47.0",
     "eslint-plugin-unused-imports": "^4.1.4",
