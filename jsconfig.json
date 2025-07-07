@@ -1,9 +1,18 @@
 {
   "compilerOptions": {
+    "baseUrl": ".", // Gốc của dự án
     "paths": {
       "~/*": [
         "./src/*"
-      ],
+      ] // Alias "~" trỏ vào src/
     },
-  }
+    "module": "commonjs", // Dùng cho Node.js
+    "target": "ES2021", // Mức độ JS hỗ trợ
+    "moduleResolution": "node", // Hỗ trợ import theo kiểu Node
+    "allowJs": true, // Cho phép JS (không phải TS)
+    "checkJs": false, // Không kiểm tra lỗi trong JS
+  },
+  "include": [
+    "src/**/*"
+  ]
 }
