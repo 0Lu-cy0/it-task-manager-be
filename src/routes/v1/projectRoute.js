@@ -10,4 +10,9 @@ Router.route('/')
   }))
   .post(projectValidation.createNew, projectController.createNew)
 
+Router.route('/:id')
+  .get(projectController.getDetails)
+// .put(projectValidation.update, projectController.update)
+// .delete(projectController.delete)
+
 export const projectRoute = Router
