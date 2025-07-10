@@ -11,6 +11,20 @@ const createNew = async (req, res, next) => {
     next(error)
   }
 }
+
+const getDetails = async (req, res, next) => {
+  try {
+    const projectId = req.params.id
+    //Điều hướng dữ liệu sang tầng service
+    const project = await projectService.getDetails(projectId)
+    //Có kết quả trả về phía client
+    res.status(StatusCodes.OK).json(project)
+  } catch (error) {
+    next(error)
+  }
+}
+
 export const projectController = {
   createNew,
+  getDetails,
 }
