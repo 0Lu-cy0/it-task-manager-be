@@ -55,9 +55,17 @@ const findOneById = async (id) => {
   } catch (error) { throw new Error(error) }
 }
 
+const getDetails = async (id) => {
+  try {
+    const projectId = await GET_DB().collection(PROJECT_COLLECTION_NAME).findOne({ _id: new ObjectId(id) })
+    return projectId
+  } catch (error) { throw new Error(error) }
+}
+
 export const projectModel = {
   PROJECT_COLLECTION_NAME,
   PROJECT_COLLECTION_SCHEMA,
   createNew,
   findOneById,
+  getDetails,
 }
