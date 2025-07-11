@@ -22,9 +22,7 @@ const createNew = async (reqBody) => {
 const getDetails = async (projectId) => {
   try {
     const project = await projectModel.getDetails(projectId)
-    console.log(project)
     if (!project) {
-      console.log('Not found project')
       throw new ApiError(StatusCodes.NOT_FOUND, 'Not Found Project')
     }
     return project //Trả về cho controller những dữ liệu cần thiết cho phía client bên fe,
