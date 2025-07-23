@@ -1,24 +1,26 @@
-import Joi from 'joi'
-import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
+import mongoose from 'mongoose'
 
+export const USER_COLLECTION_NAME = 'users'
 
-const USER_COLLECTION_NAME = 'users'
-const USER_COLLECTION_SCHEMA = Joi.object({
-  username: Joi.string().required().trim(),
-  email: Joi.string().email().required(),
-  full_name: Joi.string().required(),
-  role_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  avatar_url: Joi.string().uri().allow(null).default(null),
-  phone: Joi.string().allow(null).default(null),
-  department: Joi.string().allow(null).default(null),
-  language: Joi.string().valid('vi', 'en', 'jp', 'fr').default('en'),
-  contacts: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
-  created_at: Joi.date().timestamp().default(Date.now),
-  updated_at: Joi.date().timestamp().default(Date.now),
-  _destroy: Joi.boolean().default(false),
+const USER_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema({
+  username: { type: String, required: true, unique: true, trim: true, index: true },
+  email: { type: String, required: true, unique: true, index: true },
+  full_name: { type: String, required: true },
+  role_id: { type: mongoose.Schema.Types.ObjectId, ref: 'roles', required: true },
+  avatar_url: { type: String, default: null },
+  phone: { type: String, default: null },
+  department: { type: String, default: null },
+  language: { type: String, enum: ['vi', 'en', 'jp', 'fr'], default: 'en' },
+  contacts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'users', default: [] }],
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now },
+  _destroy: { type: Boolean, default: false },
+}).pre('save', function (next) {
+  this.updated_at = Date.now()
+  next()
 })
 
-export const userModel = {
+export const userModel = mongoose.model(
   USER_COLLECTION_NAME,
-  USER_COLLECTION_SCHEMA,
-}
+  USER_COLLECTION_SCHEMA_MONGOOSE,
+)
