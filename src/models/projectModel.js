@@ -1,71 +1,43 @@
-import Joi from 'joi'
-import { ObjectId } from 'mongodb'
-import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
-import { GET_DB } from '~/config/mongodb'
+import mongoose from 'mongoose'
 
-//Định nghĩa Collection(Name & Scheme)
-const PROJECT_COLLECTION_NAME = 'projects'
-const PROJECT_COLLECTION_SCHEMA = Joi.object({
-  name: Joi.string().required().min(3).max(50).trim(),
-  slug: Joi.string().required().min(3).trim(), //
-  description: Joi.string().allow(null).default(null),
-  status: Joi.string().optional(), //require()
+export const PROJECT_COLLECTION_NAME = 'projects'
 
-  priority: Joi.string().optional(), //require()
-  progress: Joi.number().min(0).max(100).default(0),
-  start_date: Joi.date().allow(null).default(null),
-  end_date: Joi.date().allow(null).default(null),
-  created_by: Joi.string().optional().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE), //require()
-  team_lead: Joi.string().allow(null).pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE).default(null),
-  deputy_lead: Joi.string().allow(null).pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE).default(null),
-  members: Joi.array().items(
-    Joi.object({
-      user_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-      role_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-      joined_at: Joi.date().timestamp().default(Date.now),
-    }),
-  ).default([]),
-  permissions: Joi.object({
-    can_edit: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
-    can_delete: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
-    can_add_member: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
-  }).default(),
-  member_count: Joi.number().default(0),
-  created_at: Joi.date().timestamp().default(Date.now),
-  updated_at: Joi.date().timestamp().default(Date.now),
-  _destroy: Joi.boolean().default(false),
+const PROJECT_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema({
+  name: { type: String, required: true, minlength: 3, maxlength: 50, trim: true, index: true },
+  description: { type: String, default: null },
+  status: { type: String, required: true, enum: ['planning', 'in_progress', 'testing', 'completed'] },
+  priority: { type: String, required: true, enum: ['low', 'medium', 'high'] },
+  progress: { type: Number, default: 0, min: 0, max: 100 },
+  start_date: { type: Date, default: null },
+  end_date: { type: Date, default: null },
+  created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true, index: true },
+  team_lead: { type: mongoose.Schema.Types.ObjectId, ref: 'users', default: null },
+  deputy_lead: { type: mongoose.Schema.Types.ObjectId, ref: 'users', default: null },
+  members: {
+    type: [
+      {
+        user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true, index: true },
+        role_id: { type: mongoose.Schema.Types.ObjectId, ref: 'roles', required: true },
+        joined_at: { type: Date, default: Date.now },
+      },
+    ],
+    default: [],
+  },
+  permissions: {
+    can_edit: [{ type: mongoose.Schema.Types.ObjectId, ref: 'users', default: [] }],
+    can_delete: [{ type: mongoose.Schema.Types.ObjectId, ref: 'users', default: [] }],
+    can_add_member: [{ type: mongoose.Schema.Types.ObjectId, ref: 'users', default: [] }],
+  },
+  member_count: { type: Number, default: function () { return this.members.length } },
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now },
+  _destroy: { type: Boolean, default: false },
+}).pre('save', function (next) {
+  this.updated_at = Date.now()
+  next()
 })
 
-const validateBeforeCreate = async (data) => {
-  return await PROJECT_COLLECTION_SCHEMA.validateAsync(data, { abortEarly: false })
-  //abortEarly: true: Joi sẽ dừng lại ngay khi gặp lỗi đầu tiên.
-  //abortEarly: false: Tiếp tục kiểm tra toàn bộ field → và trả về tất cả lỗi cùng lúc.
-}
-
-const createNew = async (data) => {
-  try {
-    const validData = await validateBeforeCreate(data) //validate trước
-    return await GET_DB().collection(PROJECT_COLLECTION_NAME).insertOne(validData)//truyền data đã được validate vào đây
-  } catch (error) { throw new Error(error) }
-}
-
-const findOneById = async (id) => {
-  try {
-    return await GET_DB().collection(PROJECT_COLLECTION_NAME).findOne({ _id: new ObjectId(id) })
-  } catch (error) { throw new Error(error) }
-}
-
-const getDetails = async (id) => {
-  try {
-    const projectId = await GET_DB().collection(PROJECT_COLLECTION_NAME).findOne({ _id: new ObjectId(id) })
-    return projectId
-  } catch (error) { throw new Error(error) }
-}
-
-export const projectModel = {
+export const projectModel = mongoose.model(
   PROJECT_COLLECTION_NAME,
-  PROJECT_COLLECTION_SCHEMA,
-  createNew,
-  findOneById,
-  getDetails,
-}
+  PROJECT_COLLECTION_SCHEMA_MONGOOSE,
+)

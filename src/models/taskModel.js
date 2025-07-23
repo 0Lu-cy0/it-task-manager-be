@@ -1,45 +1,44 @@
-import Joi from 'joi'
-import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
+import mongoose from 'mongoose'
 
 export const TASK_COLLECTION_NAME = 'tasks'
-export const TASK_COLLECTION_SCHEMA = Joi.object({
-  title: Joi.string().required().trim(),
-  description: Joi.string().allow(null).default(null),
-  status: Joi.string().required(),
-  priority: Joi.string().required().pattern(),
-  project_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  created_by: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  due_date: Joi.date().allow(null).default(null),
-  completed_at: Joi.date().allow(null).default(null),
-  assignees: Joi.array().items(
-    Joi.object({
-      user_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-      role_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-      assigned_by: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-      assigned_at: Joi.date().timestamp().default(Date.now),
-    }),
-  ).default([]),
-  tags: Joi.array().items(Joi.string()).default([]),
-  reminders: Joi.array().items(
-    Joi.object({
-      time: Joi.date().required(),
-      type: Joi.string().valid('email', 'popup', 'push', 'sms').default('popup'),
-      method: Joi.string().optional(),
-      created_by: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-      created_at: Joi.date().timestamp().default(Date.now),
-    }),
-  ).default([]),
-  permissions: Joi.object({
-    can_edit: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
-    can_delete: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
-    can_assign: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
-  }).default(),
-  created_at: Joi.date().timestamp().default(Date.now),
-  updated_at: Joi.date().timestamp().default(Date.now),
-  _destroy: Joi.boolean().default(false),
+
+const TASK_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema({
+  title: { type: String, required: true, trim: true, index: true },
+  description: { type: String, default: null },
+  status: { type: String, required: true, enum: ['todo', 'in_progress', 'testing', 'completed'] },
+  priority: { type: String, required: true, enum: ['low', 'medium', 'high'] },
+  project_id: { type: mongoose.Schema.Types.ObjectId, ref: 'projects', required: true },
+  created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true },
+  due_date: { type: Date, default: null },
+  completed_at: { type: Date, default: null },
+  assignees: [{
+    user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true },
+    role_id: { type: mongoose.Schema.Types.ObjectId, ref: 'roles', required: true },
+    assigned_by: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true },
+    assigned_at: { type: Date, default: Date.now },
+  }],
+  tags: [{ type: String, default: [] }],
+  reminders: [{
+    time: { type: Date, required: true },
+    type: { type: String, enum: ['email', 'popup', 'push', 'sms'], default: 'popup' },
+    method: { type: String },
+    created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true },
+    created_at: { type: Date, default: Date.now },
+  }],
+  permissions: {
+    can_edit: [{ type: mongoose.Schema.Types.ObjectId, ref: 'users', default: [] }],
+    can_delete: [{ type: mongoose.Schema.Types.ObjectId, ref: 'users', default: [] }],
+    can_assign: [{ type: mongoose.Schema.Types.ObjectId, ref: 'users', default: [] }],
+  },
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now },
+  _destroy: { type: Boolean, default: false },
+}).pre('save', function (next) {
+  this.updated_at = Date.now()
+  next()
 })
 
-export const taskModel = {
+export const taskModel = mongoose.model(
   TASK_COLLECTION_NAME,
-  TASK_COLLECTION_SCHEMA,
-}
+  TASK_COLLECTION_SCHEMA_MONGOOSE,
+)
