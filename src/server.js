@@ -5,7 +5,8 @@ import { corsOptions } from '~/config/cors'
 import exitHook from 'async-exit-hook'
 import { CLOSE_DB, CONNECT_DB } from '~/config/mongodb'
 import { env } from '~/config/environment'
-import { APIs_V1 } from './routes/v1'
+import { APIs_home } from './routes/home'
+import { APIs_auth } from './routes/auth'
 import { errorHandlingMiddleware } from './middlewares/errorHandlingMiddleware'
 
 const START_SERVER = () => {
@@ -16,7 +17,8 @@ const START_SERVER = () => {
   //Enable req.body json data
   app.use(express.json())
 
-  app.use('/v1', APIs_V1)
+  app.use('/', APIs_auth)
+  app.use('/home', APIs_home)
 
   //Middleware xử lý lỗi tập trung
   app.use(errorHandlingMiddleware)

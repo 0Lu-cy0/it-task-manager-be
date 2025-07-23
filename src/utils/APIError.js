@@ -1,6 +1,9 @@
 /**
  * Định nghĩa riêng một Class ApiError kế thừa class Error sẵn (điều này cần thiết và là Best Practice vì class Error nó là class built-in sẵn)
  */
+// Import StatusCodes from http-status-codes package
+import { StatusCodes } from 'http-status-codes'
+
 class ApiError extends Error {
   constructor(statusCode, message) {
     // Gọi tới hàm khởi tạo của class Error (class cha) để còn dùng this (kiến thức OOP lập trình hướng đối tượng căn bản)
@@ -17,5 +20,21 @@ class ApiError extends Error {
     Error.captureStackTrace(this, this.constructor)
   }
 }
+
+// Lớp lỗi cho các trường hợp không được phép (401)
+class UnauthorizedError extends ApiError {
+  constructor(message) {
+    super(StatusCodes.UNAUTHORIZED, message)
+  }
+}
+
+// Lớp lỗi cho các trường hợp xung đột (409)
+class ConflictError extends ApiError {
+  constructor(message) {
+    super(StatusCodes.CONFLICT, message)
+  }
+}
+
+export { ApiError, UnauthorizedError, ConflictError }
 
 export default ApiError
