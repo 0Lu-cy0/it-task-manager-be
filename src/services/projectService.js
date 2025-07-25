@@ -1,106 +1,154 @@
+import mongoose from 'mongoose'
 import { projectRepository } from '~/repository/projectRepository'
-import ApiError from '~/utils/ApiError'
+import { ApiError } from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
+import { MESSAGES } from '~/constants/messages'
 
+/**
+ * Tạo một dự án mới
+ * @param {Object} data - Dữ liệu dự án
+ * @returns {Object} Dự án đã được tạo
+ * @throws {ApiError} Nếu không có created_by hoặc lỗi server
+ */
 const createNew = async (data) => {
   if (!data.created_by) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Created_by is required')
+    throw new ApiError(StatusCodes.BAD_REQUEST, MESSAGES.UNAUTHORIZED)
   }
   return await projectRepository.createNew(data)
 }
 
-const getAll = async (userId, { page = 1, limit = 10, sortBy = 'created_at', order = 'desc' } = {}) => {
+/**
+ * Lấy danh sách dự án của người dùng
+ * @param {string} userId - ID của người dùng
+ * @param {Object} [options={}] - Tùy chọn truy vấn (page, limit, sortBy, order, status, priority)
+ * @returns {Array} Danh sách dự án
+ * @throws {ApiError} Nếu không tìm thấy dự án
+ */
+const getAll = async (userId, { page = 1, limit = 10, sortBy = 'created_at', order = 'desc', status, priority } = {}) => {
   const filter = {
-    $or: [
-      { 'members.user_id': userId },
-      { created_by: userId },
-    ],
+    $or: [{ 'members.user_id': userId }, { created_by: userId }],
     _destroy: false,
   }
+  if (status) filter.status = status
+  if (priority) filter.priority = priority
+
   const sort = { [sortBy]: order === 'desc' ? -1 : 1 }
   const options = { skip: (page - 1) * limit, limit: parseInt(limit) }
 
   const projects = await projectRepository.getAll(filter, sort, options)
   if (projects.length === 0) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'No projects found for this user')
+    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.NO_PROJECTS_FOUND)
   }
   return projects
 }
 
-const updateProject = async (projectId, updateData) => {
+/**
+ * Cập nhật thông tin dự án
+ * @param {string} projectId - ID của dự án
+ * @param {Object} updateData - Dữ liệu cần cập nhật
+ * @param {string} userId - ID của người dùng yêu cầu
+ * @returns {Object} Dự án đã được cập nhật
+ * @throws {ApiError} Nếu dự án không tồn tại, không có quyền hoặc dữ liệu không hợp lệ
+ */
+const updateProject = async (projectId, updateData, userId) => {
   const project = await projectRepository.findOneById(projectId)
-  if (!project || project._destroy) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Project not found')
+  if (!project.permissions.can_edit.includes(userId)) {
+    throw new ApiError(StatusCodes.FORBIDDEN, MESSAGES.FORBIDDEN)
   }
-
-  const updatedProject = await projectRepository.update(projectId, updateData)
-  return updatedProject
+  return await projectRepository.update(projectId, updateData)
 }
 
-const deleteProject = async (projectId) => {
+/**
+ * Xóa mềm dự án
+ * @param {string} projectId - ID của dự án
+ * @param {string} userId - ID của người dùng yêu cầu
+ * @returns {boolean} Trả về true nếu xóa thành công
+ * @throws {ApiError} Nếu dự án không tồn tại hoặc không có quyền
+ */
+const deleteProject = async (projectId, userId) => {
   const project = await projectRepository.findOneById(projectId)
-  if (!project || project._destroy) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Project not found')
+  if (!project.permissions.can_delete.includes(userId)) {
+    throw new ApiError(StatusCodes.FORBIDDEN, MESSAGES.FORBIDDEN)
   }
-
-  await projectRepository.softDelete(projectId)
-  return true
+  return await projectRepository.softDelete(projectId)
 }
 
+/**
+ * Lấy thông tin dự án theo ID
+ * @param {string} projectId - ID của dự án
+ * @returns {Object} Thông tin dự án
+ * @throws {ApiError} Nếu dự án không tồn tại
+ */
 const getProjectById = async (projectId) => {
-  const project = await projectRepository.findOneById(projectId)
-  if (!project || project._destroy) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Project not found')
-  }
-  return project
+  return await projectRepository.findOneById(projectId)
 }
 
-const addProjectMember = async (projectId, memberData) => {
+/**
+ * Thêm thành viên vào dự án
+ * @param {string} projectId - ID của dự án
+ * @param {Object} memberData - Thông tin thành viên (user_id, role_id)
+ * @param {string} userId - ID của người dùng yêu cầu
+ * @returns {Object} Dự án đã được cập nhật
+ * @throws {ApiError} Nếu dự án không tồn tại, không có quyền, hoặc thành viên không hợp lệ
+ */
+const addProjectMember = async (projectId, memberData, userId) => {
   const project = await projectRepository.findOneById(projectId)
-  if (!project || project._destroy) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Project not found')
+  if (!project.permissions.can_add_member.includes(userId)) {
+    throw new ApiError(StatusCodes.FORBIDDEN, MESSAGES.FORBIDDEN)
   }
-
-  const isMember = project.members.some(member => member.user_id.toString() === memberData.user_id)
-  if (isMember) {
-    throw new ApiError(StatusCodes.CONFLICT, 'User is already a member of this project')
+  const user = await mongoose.model('users').findById(memberData.user_id)
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.USER_NOT_FOUND)
   }
-
-  const updatedProject = await projectRepository.addMember(projectId, {
+  const role = await mongoose.model('roles').findById(memberData.role_id)
+  if (!role) {
+    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.ROLE_NOT_FOUND)
+  }
+  return await projectRepository.addMember(projectId, {
     ...memberData,
     joined_at: Date.now(),
   })
-  return updatedProject
 }
 
-const removeProjectMember = async (projectId, userId) => {
+/**
+ * Xóa thành viên khỏi dự án
+ * @param {string} projectId - ID của dự án
+ * @param {string} userId - ID của thành viên cần xóa
+ * @param {string} requesterId - ID của người dùng yêu cầu
+ * @returns {boolean} Trả về true nếu xóa thành công
+ * @throws {ApiError} Nếu dự án không tồn tại, không có quyền hoặc thành viên không tồn tại
+ */
+const removeProjectMember = async (projectId, userId, requesterId) => {
   const project = await projectRepository.findOneById(projectId)
-  if (!project || project._destroy) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Project not found')
+  if (!project.permissions.can_add_member.includes(requesterId)) {
+    throw new ApiError(StatusCodes.FORBIDDEN, MESSAGES.FORBIDDEN)
   }
-
   const isMember = project.members.some(member => member.user_id.toString() === userId)
   if (!isMember) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'User is not a member of this project')
+    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.USER_NOT_MEMBER)
   }
-
-  await projectRepository.removeMember(projectId, userId)
-  return true
+  return await projectRepository.removeMember(projectId, userId)
 }
 
-const updateProjectMemberRole = async (projectId, userId, roleId) => {
+/**
+ * Cập nhật vai trò của thành viên trong dự án
+ * @param {string} projectId - ID của dự án
+ * @param {string} userId - ID của thành viên
+ * @param {string} roleId - ID của vai trò mới
+ * @param {string} requesterId - ID của người dùng yêu cầu
+ * @returns {Object} Dự án đã được cập nhật
+ * @throws {ApiError} Nếu dự án không tồn tại, không có quyền, thành viên hoặc vai trò không tồn tại
+ */
+const updateProjectMemberRole = async (projectId, userId, roleId, requesterId) => {
   const project = await projectRepository.findOneById(projectId)
-  if (!project || project._destroy) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Project not found')
+  if (!project.permissions.can_add_member.includes(requesterId)) {
+    throw new ApiError(StatusCodes.FORBIDDEN, MESSAGES.FORBIDDEN)
   }
-
-  const member = project.members.find(member => member.user_id.toString() === userId)
-  if (!member) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'User is not a member of this project')
+  const role = await mongoose.model('roles').findById(roleId)
+  if (!role) {
+    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.ROLE_NOT_FOUND)
   }
-
-  const updatedProject = await projectRepository.updateMemberRole(projectId, userId, roleId)
-  return updatedProject
+  return await projectRepository.updateMemberRole(projectId, userId, roleId)
 }
 
 export const projectService = {

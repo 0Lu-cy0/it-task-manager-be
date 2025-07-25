@@ -22,9 +22,6 @@ const START_SERVER = () => {
 
   //Middleware xử lý lỗi tập trung
   app.use(errorHandlingMiddleware)
-  app.get('/', (req, res) => {
-    res.end('<h1>Cat2004</h1>')
-  })
 
   app.listen(env.APP_PORT, env.APP_HOST, () => {
     // eslint-disable-next-line no-console
