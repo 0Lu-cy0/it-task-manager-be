@@ -11,8 +11,8 @@ export const env = {
   // JWT_EXPIRES_IN_REFRESH: process.env.JWT_EXPIRES_IN_REFRESH,
   // JWT_EXPIRES_IN_REFRESH_COOKIE: process.env.JWT_EXPIRES_IN_REFRESH_COOKIE,
   // JWT_EXPIRES_IN_COOKIE: process.env.JWT_EXPIRES_IN_COOKIE,
-  // EMAIL_USER: process.env.EMAIL_USER,
-  // EMAIL_PASS: process.env.EMAIL_PASS,
+  EMAIL_USER: process.env.EMAIL_USER,
+  EMAIL_PASS: process.env.EMAIL_PASS,
   // EMAIL_HOST: process.env.EMAIL_HOST,
   // EMAIL_PORT: process.env.EMAIL_PORT,
   // EMAIL_SECURE: process.env.EMAIL_SECURE,
@@ -22,6 +22,7 @@ export const env = {
   // EMAIL_TEXT: process.env.EMAIL_TEXT,
   // EMAIL_HTML: process.env.EMAIL_HTML,
   // EMAIL_HTML_BUI: process.env.EMAIL_HTML_
+  CLIENT_URL: process.env.CLIENT_URL,
 
   AUTHOR: process.env.AUTHOR,
 }
