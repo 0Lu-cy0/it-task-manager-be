@@ -1,13 +1,17 @@
-//\src\validations\authVaildation.js
 import Joi from 'joi'
 import { StatusCodes } from 'http-status-codes'
-import ApiError from '~/utils/ApiError'
+import { ApiError } from '~/utils/ApiError'
+import { MESSAGES } from '~/constants/messages'
 
-// Schema để validate toàn bộ dữ liệu user trong database
-const AUTH_COLLECTION_SCHEMA_JOI = Joi.object({
+/**
+ * Schema Joi cho collection người dùng
+ * @description Định nghĩa cấu trúc dữ liệu của người dùng trong database
+ * @type {Joi.ObjectSchema}
+ */
+const USER_COLLECTION_SCHEMA_JOI = Joi.object({
   email: Joi.string().email().required().messages({
-    'string.email': 'Email không hợp lệ',
-    'any.required': 'Email là bắt buộc',
+    'string.email': MESSAGES.EMAIL_INVALID,
+    'any.required': MESSAGES.EMAIL_REQUIRED,
   }),
   password: Joi.string()
     .min(8)
@@ -15,21 +19,43 @@ const AUTH_COLLECTION_SCHEMA_JOI = Joi.object({
     .required()
     .pattern(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]+$/)
     .messages({
-      'string.min': 'Mật khẩu phải có ít nhất 8 ký tự',
-      'string.pattern.base': 'Mật khẩu phải chứa ít nhất một chữ cái và một số',
-      'any.required': 'Mật khẩu là bắt buộc',
+      'string.min': MESSAGES.PASSWORD_MIN,
+      'string.pattern.base': MESSAGES.PASSWORD_PATTERN,
+      'any.required': MESSAGES.PASSWORD_REQUIRED,
     }),
+  full_name: Joi.string().min(3).max(50).allow(null).messages({
+    'string.min': MESSAGES.NAME_MIN,
+    'string.max': MESSAGES.NAME_MAX,
+  }),
+  avatar_url: Joi.string().uri().allow(null, '').messages({
+    'string.uri': MESSAGES.AVATAR_INVALID,
+  }),
+  phone: Joi.string().pattern(/^[0-9+()-\s]{8,20}$/).allow(null, '').messages({
+    'string.pattern.base': MESSAGES.PHONE_INVALID,
+  }),
+  department: Joi.string().max(50).allow(null, '').messages({
+    'string.max': MESSAGES.DEPARTMENT_MAX,
+  }),
+  language: Joi.string().valid('vi', 'en', 'jp', 'fr').default('vi').messages({
+    'any.only': MESSAGES.LANGUAGE_INVALID,
+  }),
   is_verified: Joi.boolean().default(false),
+  resetToken: Joi.string().allow(null),
+  resetTokenExpiry: Joi.date().allow(null),
   created_at: Joi.date().default(Date.now),
   updated_at: Joi.date().default(Date.now),
   _destroy: Joi.boolean().default(false),
 })
 
-// Schema để validate dữ liệu khi đăng ký
+/**
+ * Schema Joi cho đăng ký người dùng
+ * @description Tách riêng để kiểm soát chặt chẽ dữ liệu đầu vào, chỉ chấp nhận email và password
+ * @type {Joi.ObjectSchema}
+ */
 const registerSchema = Joi.object({
   email: Joi.string().email().required().messages({
-    'string.email': 'Email không hợp lệ',
-    'any.required': 'Email là bắt buộc',
+    'string.email': MESSAGES.EMAIL_INVALID,
+    'any.required': MESSAGES.EMAIL_REQUIRED,
   }),
   password: Joi.string()
     .min(8)
@@ -37,24 +63,94 @@ const registerSchema = Joi.object({
     .required()
     .pattern(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]+$/)
     .messages({
-      'string.min': 'Mật khẩu phải có ít nhất 8 ký tự',
-      'string.pattern.base': 'Mật khẩu phải chứa ít nhất một chữ cái và một số',
-      'any.required': 'Mật khẩu là bắt buộc',
+      'string.min': MESSAGES.PASSWORD_MIN,
+      'string.pattern.base': MESSAGES.PASSWORD_PATTERN,
+      'any.required': MESSAGES.PASSWORD_REQUIRED,
     }),
 })
 
-// Schema để validate dữ liệu khi đăng nhập
+/**
+ * Schema Joi cho đăng nhập
+ * @description Tách riêng để kiểm soát chặt chẽ dữ liệu đầu vào, chỉ chấp nhận email và password
+ * @type {Joi.ObjectSchema}
+ */
 const loginSchema = Joi.object({
   email: Joi.string().email().required().messages({
-    'string.email': 'Email không hợp lệ',
-    'any.required': 'Email là bắt buộc',
+    'string.email': MESSAGES.EMAIL_INVALID,
+    'any.required': MESSAGES.EMAIL_REQUIRED,
   }),
-  password: Joi.string().required().messages({
-    'any.required': 'Mật khẩu là bắt buộc',
-  }),
+  password: Joi.string()
+    .min(8)
+    .max(128)
+    .required()
+    .pattern(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]+$/)
+    .messages({
+      'string.min': MESSAGES.PASSWORD_MIN,
+      'string.pattern.base': MESSAGES.PASSWORD_PATTERN,
+      'any.required': MESSAGES.PASSWORD_REQUIRED,
+    }),
 })
 
-// Hàm validate dữ liệu trước khi đăng ký (dùng trong repository)
+/**
+ * Schema Joi cho yêu cầu đặt lại mật khẩu
+ * @description Tách riêng để kiểm soát chặt chẽ dữ liệu đầu vào, chỉ chấp nhận email
+ * @type {Joi.ObjectSchema}
+ */
+const validateResetPasswordRequest = async (data) => {
+  const schema = Joi.object({
+    email: Joi.string().email().required().messages({
+      'string.email': MESSAGES.EMAIL_INVALID,
+      'any.required': MESSAGES.EMAIL_REQUIRED,
+    }),
+  })
+  try {
+    return await schema.validateAsync(data, { abortEarly: false })
+  } catch (error) {
+    throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, error.message)
+  }
+}
+
+/**
+ * Schema Joi cho xác nhận đặt lại mật khẩu
+ * @description Tách riêng để kiểm soát chặt chẽ dữ liệu đầu vào, chỉ chấp nhận resetToken, newPassword, confirmPassword
+ * @type {Joi.ObjectSchema}
+ */
+const validateResetPasswordConfirm = async (data) => {
+  const schema = Joi.object({
+    resetToken: Joi.string().required().messages({
+      'any.required': 'Token đặt lại mật khẩu là bắt buộc',
+    }),
+    newPassword: Joi.string()
+      .min(8)
+      .max(128)
+      .required()
+      .pattern(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]+$/)
+      .messages({
+        'string.min': MESSAGES.PASSWORD_MIN,
+        'string.pattern.base': MESSAGES.PASSWORD_PATTERN,
+        'any.required': MESSAGES.PASSWORD_REQUIRED,
+      }),
+    confirmPassword: Joi.string()
+      .valid(Joi.ref('newPassword'))
+      .required()
+      .messages({
+        'any.only': MESSAGES.PASSWORD_MISMATCH,
+        'any.required': MESSAGES.PASSWORD_REQUIRED,
+      }),
+  })
+  try {
+    return await schema.validateAsync(data, { abortEarly: false })
+  } catch (error) {
+    throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, error.message)
+  }
+}
+
+/**
+ * Xác thực dữ liệu trước khi đăng ký
+ * @param {Object} data - Dữ liệu đăng ký (email, password)
+ * @returns {Object} Dữ liệu đã được xác thực
+ * @throws {ApiError} Nếu dữ liệu không hợp lệ
+ */
 const validateBeforeRegister = async (data) => {
   try {
     return await registerSchema.validateAsync(data, { abortEarly: false })
@@ -63,7 +159,12 @@ const validateBeforeRegister = async (data) => {
   }
 }
 
-// Hàm validate dữ liệu trước khi đăng nhập (dùng trong middleware)
+/**
+ * Xác thực dữ liệu trước khi đăng nhập
+ * @param {Object} data - Dữ liệu đăng nhập (email, password)
+ * @returns {Object} Dữ liệu đã được xác thực
+ * @throws {ApiError} Nếu dữ liệu không hợp lệ
+ */
 const validateBeforeLogin = async (data) => {
   try {
     return await loginSchema.validateAsync(data, { abortEarly: false })
@@ -72,23 +173,29 @@ const validateBeforeLogin = async (data) => {
   }
 }
 
+/**
+ * Xác thực dữ liệu cập nhật hồ sơ
+ * @param {Object} data - Dữ liệu cập nhật (full_name, avatar_url, phone, department, language)
+ * @returns {Object} Dữ liệu đã được xác thực
+ * @throws {ApiError} Nếu dữ liệu không hợp lệ
+ */
 const validateProfileUpdate = async (data) => {
   const schema = Joi.object({
-    full_name: Joi.string().min(3).max(50).messages({
-      'string.min': 'Tên phải có ít nhất 3 ký tự',
-      'string.max': 'Tên không được vượt quá 50 ký tự',
+    full_name: Joi.string().min(3).max(50).allow(null).messages({
+      'string.min': MESSAGES.NAME_MIN,
+      'string.max': MESSAGES.NAME_MAX,
     }),
     avatar_url: Joi.string().uri().allow(null, '').messages({
-      'string.uri': 'URL avatar không hợp lệ',
+      'string.uri': MESSAGES.AVATAR_INVALID,
     }),
     phone: Joi.string().pattern(/^[0-9+()-\s]{8,20}$/).allow(null, '').messages({
-      'string.pattern.base': 'Số điện thoại không hợp lệ',
+      'string.pattern.base': MESSAGES.PHONE_INVALID,
     }),
     department: Joi.string().max(50).allow(null, '').messages({
-      'string.max': 'Tên phòng ban không được vượt quá 50 ký tự',
+      'string.max': MESSAGES.DEPARTMENT_MAX,
     }),
     language: Joi.string().valid('vi', 'en', 'jp', 'fr').messages({
-      'any.only': 'Ngôn ngữ phải là một trong các giá trị: vi, en, jp, fr',
+      'any.only': MESSAGES.LANGUAGE_INVALID,
     }),
   })
 
@@ -99,11 +206,17 @@ const validateProfileUpdate = async (data) => {
   }
 }
 
+/**
+ * Xác thực dữ liệu đổi mật khẩu
+ * @param {Object} data - Dữ liệu mật khẩu (currentPassword, newPassword, confirmPassword)
+ * @returns {Object} Dữ liệu đã được xác thực
+ * @throws {ApiError} Nếu dữ liệu không hợp lệ
+ */
 const validatePasswordChange = async (data) => {
   const schema = Joi.object({
     currentPassword: Joi.string().required().min(8).messages({
-      'any.required': 'Mật khẩu hiện tại là bắt buộc',
-      'string.min': 'Mật khẩu phải có ít nhất 8 ký tự',
+      'any.required': MESSAGES.PASSWORD_REQUIRED,
+      'string.min': MESSAGES.PASSWORD_MIN,
     }),
     newPassword: Joi.string()
       .min(8)
@@ -112,17 +225,17 @@ const validatePasswordChange = async (data) => {
       .pattern(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]+$/)
       .not(Joi.ref('currentPassword'))
       .messages({
-        'string.min': 'Mật khẩu mới phải có ít nhất 8 ký tự',
-        'string.pattern.base': 'Mật khẩu mới phải chứa ít nhất một chữ cái và một số',
-        'any.required': 'Mật khẩu mới là bắt buộc',
+        'string.min': MESSAGES.PASSWORD_MIN,
+        'string.pattern.base': MESSAGES.PASSWORD_PATTERN,
+        'any.required': MESSAGES.PASSWORD_REQUIRED,
         'any.invalid': 'Mật khẩu mới phải khác mật khẩu hiện tại',
       }),
     confirmPassword: Joi.string()
       .valid(Joi.ref('newPassword'))
       .required()
       .messages({
-        'any.only': 'Mật khẩu xác nhận không khớp',
-        'any.required': 'Mật khẩu xác nhận là bắt buộc',
+        'any.only': MESSAGES.PASSWORD_MISMATCH,
+        'any.required': MESSAGES.PASSWORD_REQUIRED,
       }),
   })
 
@@ -134,11 +247,11 @@ const validatePasswordChange = async (data) => {
 }
 
 export const authValidation = {
-  AUTH_COLLECTION_SCHEMA_JOI,
-  registerSchema,
-  loginSchema,
+  USER_COLLECTION_SCHEMA_JOI,
   validateBeforeRegister,
   validateBeforeLogin,
   validateProfileUpdate,
   validatePasswordChange,
+  validateResetPasswordRequest,
+  validateResetPasswordConfirm,
 }

@@ -1,22 +1,28 @@
 import jwt from 'jsonwebtoken'
 import { StatusCodes } from 'http-status-codes'
-import ApiError from '~/utils/ApiError'
+import { ApiError } from '~/utils/ApiError'
 import { env } from '~/config/environment'
+import { MESSAGES } from '~/constants/messages'
 
-const JWT_SECRET_KEY = env.JWT_SECRET_KEY || 'Cat204'
-
+/**
+ * Xác thực JWT token từ header Authorization
+ * @param {Object} req - Request chứa header Authorization
+ * @param {Object} res - Response trả về
+ * @param {Function} next - Middleware tiếp theo
+ * @throws {ApiError} Nếu token không hợp lệ hoặc thiếu
+ */
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new ApiError(StatusCodes.UNAUTHORIZED, 'Không tìm thấy token hoặc token không hợp lệ')
+    throw new ApiError(StatusCodes.UNAUTHORIZED, MESSAGES.UNAUTHORIZED)
   }
   const token = authHeader.split(' ')[1]
   try {
-    const decoded = jwt.verify(token, JWT_SECRET_KEY)
+    const decoded = jwt.verify(token, env.JWT_SECRET_KEY)
     req.user = decoded // Lưu thông tin user vào req để sử dụng trong controller
     next()
   } catch (error) {
-    throw new ApiError(StatusCodes.UNAUTHORIZED, 'Token không hợp lệ hoặc đã hết hạn')
+    throw new ApiError(StatusCodes.UNAUTHORIZED, MESSAGES.INVALID_TOKEN)
   }
 }
 

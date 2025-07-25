@@ -140,8 +140,6 @@ const validateStatusUpdate = async (data) => {
 }
 
 export const taskValidation = {
-  TASK_COLLECTION_SCHEMA_JOI,
-  CREATE_NEW_SCHEMA,
   validateBeforeCreate,
   validateCreate,
   validateUpdate,
