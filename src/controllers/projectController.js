@@ -43,16 +43,16 @@ const createNew = async (req, res, next) => {
  */
 const update = async (req, res, next) => {
   try {
-    const { id } = req.params
-    const result = await projectService.updateProject(id, req.body, req.user._id)
-    logger.info(`Dự án ${id} được cập nhật bởi ${req.user._id}`)
+    const { projectId } = req.params
+    const result = await projectService.updateProject(projectId, req.body)
+    logger.info(`Dự án ${projectId} được cập nhật bởi ${req.user._id}`)
     return res.status(StatusCodes.OK).json({
       status: 'success',
       message: MESSAGES.PROJECT_UPDATED,
       data: result,
     })
   } catch (error) {
-    logger.error(`Lỗi khi cập nhật dự án ${req.params.id}: ${error.message}`)
+    logger.error(`Lỗi khi cập nhật dự án ${req.params.projectId}: ${error.message}`)
     next(error)
   }
 }
@@ -63,18 +63,27 @@ const update = async (req, res, next) => {
  * @param {Object} res - Response trả về kết quả
  * @param {Function} next - Middleware xử lý lỗi
  * @throws {ApiError} Nếu dự án không tồn tại hoặc không có quyền
+ * @route DELETE /api/projects/:projectId
+ * @access Private (cần có quyền delete_project)
  */
 const deleteProject = async (req, res, next) => {
   try {
-    const { id } = req.params
-    await projectService.deleteProject(id, req.user._id)
-    logger.info(`Dự án ${id} được xóa bởi ${req.user._id}`)
-    return res.status(StatusCodes.OK).json({
-      status: 'success',
-      message: MESSAGES.PROJECT_DELETED,
-    })
+    const { projectId } = req.params
+    const deleted = projectService.deleteProject(projectId)
+    if (deleted) {
+      res.status(StatusCodes.NOT_FOUND).json({
+        status: 'error',
+        message: MESSAGES.PROJECT_NOT_FOUND,
+      })
+    }
+    else {
+      res.status(StatusCodes.OK).json({
+        status: 'success',
+        message: MESSAGES.PROJECT_DELETED,
+      })
+    }
   } catch (error) {
-    logger.error(`Lỗi khi xóa dự án ${req.params.id}: ${error.message}`)
+    logger.error(`Lỗi khi xóa dự án ${req.params.projectId}: ${error.message}`)
     next(error)
   }
 }
@@ -181,8 +190,8 @@ const removeMember = async (req, res, next) => {
 const updateMemberRole = async (req, res, next) => {
   try {
     const { id, userId } = req.params
-    const { role_id } = req.body
-    const result = await projectService.updateProjectMemberRole(id, userId, role_id, req.user._id)
+    const roleData = { user_id: userId, role_name: req.body.role_name }
+    const result = await projectService.updateProjectMemberRole(id, roleData, req.user._id)
     logger.info(`Cập nhật vai trò thành viên ${userId} trong dự án ${id} bởi ${req.user._id}`)
     return res.status(StatusCodes.OK).json({
       status: 'success',
@@ -191,6 +200,52 @@ const updateMemberRole = async (req, res, next) => {
     })
   } catch (error) {
     logger.error(`Lỗi khi cập nhật vai trò thành viên ${req.params.userId} trong dự án ${req.params.id}: ${error.message}`)
+    next(error)
+  }
+}
+
+/**
+ * Lấy danh sách vai trò của dự án
+ * @param {Object} req - Request chứa ID dự án
+ * @param {Object} res - Response trả về danh sách vai trò
+ * @param {Function} next - Middleware xử lý lỗi
+ * @returns {Array} Danh sách vai trò
+ * @throws {ApiError} Nếu dự án không tồn tại
+ */
+const getProjectRoles = async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const result = await projectService.getProjectRoles(id)
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Danh sách vai trò được lấy thành công',
+      data: result,
+    })
+  } catch (error) {
+    logger.error(`Lỗi khi lấy danh sách vai trò của dự án ${req.params.id}: ${error.message}`)
+    next(error)
+  }
+}
+
+/**
+ * Lấy thông tin lead của dự án
+ * @param {Object} req - Request chứa ID dự án
+ * @param {Object} res - Response trả về thông tin lead
+ * @param {Function} next - Middleware xử lý lỗi
+ * @returns {Object|null} Thông tin lead
+ * @throws {ApiError} Nếu dự án không tồn tại
+ */
+const getProjectLead = async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const result = await projectService.getProjectLead(id)
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Thông tin lead được lấy thành công',
+      data: result,
+    })
+  } catch (error) {
+    logger.error(`Lỗi khi lấy thông tin lead của dự án ${req.params.id}: ${error.message}`)
     next(error)
   }
 }
@@ -204,4 +259,6 @@ export const projectController = {
   addMember,
   removeMember,
   updateMemberRole,
+  getProjectRoles,
+  getProjectLead,
 }

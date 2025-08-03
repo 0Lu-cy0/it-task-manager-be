@@ -1,52 +1,61 @@
 import { authModel } from '~/models/authModel'
-import { ApiError } from '~/utils/ApiError'
-import { StatusCodes } from 'http-status-codes'
-import { MESSAGES } from '~/constants/messages'
 
 /**
- * Đăng ký người dùng mới trong cơ sở dữ liệu
- * @param {Object} data - Dữ liệu người dùng (email, password)
- * @returns {Object} Người dùng đã được tạo
- * @throws {ApiError} Nếu email đã tồn tại
+ * Creates a new user in the database
+ * @param {Object} data - User data (e.g., email, password, full_name)
+ * @returns {Object} Created user
  */
-const register = async (data) => {
-  const existingUser = await authModel.findOne({ email: data.email }).lean()
-  if (existingUser) {
-    throw new ApiError(StatusCodes.CONFLICT, MESSAGES.EMAIL_EXISTS)
-  }
+const createUser = async (data) => {
   return await authModel.create(data)
 }
 
 /**
- * Tìm người dùng theo email
- * @param {string} email - Email của người dùng
- * @returns {Object} Thông tin người dùng
- * @throws {ApiError} Nếu người dùng không tồn tại hoặc đã bị xóa mềm
+ * Finds a user by email
+ * @param {string} email - User's email
+ * @returns {Object|null} User if found, null otherwise
  */
-const findByEmail = async (email) => {
-  const user = await authModel.findOne({ email, _destroy: false }).lean().exec()
-  if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.USER_NOT_FOUND)
-  }
-  return user
+const findUserByEmail = async (email) => {
+  return await authModel.findOne({ email, _destroy: false }).lean().exec()
 }
 
 /**
- * Tìm người dùng theo ID
- * @param {string} id - ID của người dùng
- * @returns {Object} Thông tin người dùng
- * @throws {ApiError} Nếu người dùng không tồn tại hoặc đã bị xóa mềm
+ * Finds a user by ID
+ * @param {string} id - User's ID
+ * @returns {Object|null} User if found, null otherwise
  */
-const findById = async (id) => {
-  const user = await authModel.findById(id).lean().exec()
-  if (!user || user._destroy) {
-    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.USER_NOT_FOUND)
-  }
-  return user
+const findUserById = async (id) => {
+  return await authModel.findOne({ _id: id, _destroy: false }).lean().exec()
+}
+
+/**
+ * Updates a user by ID
+ * @param {string} id - User's ID
+ * @param {Object} data - Data to update
+ * @returns {Object|null} Updated user
+ */
+const updateUserById = async (id, data) => {
+  return await authModel
+    .findOneAndUpdate({ _id: id, _destroy: false }, { $set: data }, { new: true })
+    .select('-password -resetToken -resetTokenExpiry')
+    .lean()
+    .exec()
+}
+
+/**
+ * Finds a user by reset token
+ * @param {string} resetToken - Reset token
+ * @returns {Object|null} User if found, null otherwise
+ */
+const findUserByResetToken = async (resetToken) => {
+  return await authModel
+    .findOne({ resetToken, resetTokenExpiry: { $gt: Date.now() }, _destroy: false })
+    .exec()
 }
 
 export const authRepository = {
-  register,
-  findByEmail,
-  findById,
+  createUser,
+  findUserByEmail,
+  findUserById,
+  updateUserById,
+  findUserByResetToken,
 }

@@ -3,6 +3,7 @@ import { StatusCodes } from 'http-status-codes'
 import { ApiError } from '~/utils/ApiError'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 import { MESSAGES } from '~/constants/messages'
+import { permissionModel } from '~/models/permissionModel'
 
 /**
  * Schema cơ bản cho dự án
@@ -30,13 +31,13 @@ const BASE_PROJECT_SCHEMA = Joi.object({
 
 /**
  * Schema Joi cho collection dự án
- * @description Định nghĩa đầy đủ các trường của dự án, bao gồm thành viên, quyền, v.v.
+ * @description Định nghĩa đầy đủ các trường của dự án, bao gồm thành viên, v.v.
  * @type {Joi.ObjectSchema}
  */
 const PROJECT_COLLECTION_SCHEMA_JOI = BASE_PROJECT_SCHEMA.append({
   progress: Joi.number().min(0).max(100).default(0),
   start_date: Joi.date().allow(null).default(null),
-  end_date: Joi.date().allow(null).default(null)
+  end_date: Joi.date().allow(null)
     .greater(Joi.ref('start_date'))
     .messages({
       'date.greater': MESSAGES.END_DATE_INVALID,
@@ -48,17 +49,12 @@ const PROJECT_COLLECTION_SCHEMA_JOI = BASE_PROJECT_SCHEMA.append({
     .items(
       Joi.object({
         user_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-        role_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+        project_role_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
         joined_at: Joi.date().default(Date.now),
       }),
     )
     .unique((a, b) => a.user_id === b.user_id)
     .default([]),
-  permissions: Joi.object({
-    can_edit: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
-    can_delete: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
-    can_add_member: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
-  }).default(),
   created_at: Joi.date().default(Date.now),
   updated_at: Joi.date().default(Date.now),
   _destroy: Joi.boolean().default(false),
@@ -81,7 +77,7 @@ const CREATE_NEW_SCHEMA = BASE_PROJECT_SCHEMA.append({
  */
 const validateBeforeCreate = async (data) => {
   try {
-    return await PROJECT_COLLECTION_SCHEMA_JOI.validateAsync(data, { abortEarly: false })
+    return await CREATE_NEW_SCHEMA.validateAsync(data, { abortEarly: false })
   } catch (error) {
     throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, error.message)
   }
@@ -95,7 +91,7 @@ const validateBeforeCreate = async (data) => {
  */
 const validateUpdate = async (data) => {
   const schema = Joi.object({
-    name: Joi.string().min(3).max(50).trim().messages({
+    name: Joi.string().min(5).max(50).trim().messages({
       'string.min': MESSAGES.TITLE_MIN,
       'string.max': MESSAGES.TITLE_MAX,
       'string.trim': MESSAGES.TITLE_TRIM,
@@ -117,6 +113,7 @@ const validateUpdate = async (data) => {
 
   try {
     return await schema.validateAsync(data, { abortEarly: false })
+    //abortEarly: false: Tiếp tục kiểm tra và trả về tất cả các lỗi thay vì chỉ trả về lỗi đầu tiên
   } catch (error) {
     throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, error.message)
   }
@@ -124,14 +121,13 @@ const validateUpdate = async (data) => {
 
 /**
  * Xác thực dữ liệu thêm thành viên
- * @param {Object} data - Thông tin thành viên (user_id, role_id)
+ * @param {Object} data - Thông tin thành viên (user_id)
  * @returns {Object} Dữ liệu đã được xác thực
  * @throws {ApiError} Nếu dữ liệu không hợp lệ
  */
 const validateAddMember = async (data) => {
   const schema = Joi.object({
     user_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-    role_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   })
 
   try {
@@ -143,13 +139,46 @@ const validateAddMember = async (data) => {
 
 /**
  * Xác thực dữ liệu cập nhật vai trò thành viên
- * @param {Object} data - Thông tin vai trò (role_id)
+ * @param {Object} data - Thông tin vai trò (user_id, role_name)
  * @returns {Object} Dữ liệu đã được xác thực
  * @throws {ApiError} Nếu dữ liệu không hợp lệ
  */
 const validateUpdateMemberRole = async (data) => {
   const schema = Joi.object({
-    role_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+    user_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+    role_name: Joi.string().valid('lead', 'member').required().messages({
+      'any.only': MESSAGES.ROLE_ONLY,
+      'any.required': MESSAGES.ROLE_REQUIRED,
+    }),
+  })
+
+  try {
+    return await schema.validateAsync(data, { abortEarly: false })
+  } catch (error) {
+    throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, error.message)
+  }
+}
+
+/**
+ * Xác thực dữ liệu cập nhật quyền của vai trò
+ * @param {Object} data - Danh sách quyền (permissions)
+ * @returns {Object} Dữ liệu đã được xác thực
+ * @throws {ApiError} Nếu dữ liệu không hợp lệ
+ */
+const validateUpdateRolePermissions = async (data) => {
+  // Lấy danh sách tên quyền hợp lệ (chưa bị _destroy)
+  const permissionDocs = await permissionModel.find({ _destroy: false }, { name: 1 }).lean()
+  const validPermissionNames = permissionDocs.map(p => p.name)
+
+  // Tạo schema Joi
+  const schema = Joi.object({
+    permissions: Joi.array()
+      .items(Joi.string().valid(...validPermissionNames))
+      .required()
+      .messages({
+        'any.required': 'Danh sách quyền là bắt buộc',
+        'any.only': 'Quyền không hợp lệ',
+      }),
   })
 
   try {
@@ -164,4 +193,5 @@ export const projectValidation = {
   validateUpdate,
   validateAddMember,
   validateUpdateMemberRole,
+  validateUpdateRolePermissions,
 }

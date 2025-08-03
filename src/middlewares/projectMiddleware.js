@@ -1,40 +1,40 @@
 import { projectValidation } from '~/validations/projectValidation'
 import { projectService } from '~/services/projectService'
+// import { projectRolesModel } from '~/models/projectRolesModel'
 import { ApiError } from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 import { MESSAGES } from '~/constants/messages'
 
-/**
- * Kiểm tra xem người dùng đã xác thực chưa
- * @param {Object} req - Request chứa thông tin người dùng
- * @param {Object} res - Response trả về
- * @param {Function} next - Middleware tiếp theo
- * @throws {ApiError} Nếu không có thông tin người dùng
- */
-const ensureAuthenticated = (req, res, next) => {
-  if (!req.user?._id) {
-    throw new ApiError(StatusCodes.UNAUTHORIZED, MESSAGES.UNAUTHORIZED)
+const checkProjectPermission = (permissionName) => {
+  return async (req, res, next) => {
+    try {
+      const { projectId } = req.params
+      const userId = req.user?._id // an toàn hơn với optional chaining
+      // Kiểm tra từng giá trị
+      if (!projectId) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, MESSAGES.PROJECT_ID_NOT_FOUND)
+      }
+      if (!userId) {
+        throw new ApiError(StatusCodes.UNAUTHORIZED, MESSAGES.USERID_NOT_FOUND)
+      }
+      if (!permissionName) {
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, MESSAGES.PERMISSION_NAME_NOT_FOUND)
+      }
+      const hasPermission = await projectService.verifyProjectPermission(
+        projectId,
+        userId,
+        permissionName,
+      )
+      if (!hasPermission) {
+        throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền thực hiện thao tác này')
+      }
+      next()
+    } catch (error) {
+      next(error)
+    }
   }
-  next()
 }
 
-/**
- * Kiểm tra quyền của người dùng đối với dự án
- * @param {string} requiredPermission - Quyền cần kiểm tra (can_edit, can_delete, can_add_member)
- * @returns {Function} Middleware kiểm tra quyền
- * @throws {ApiError} Nếu người dùng không có quyền
- */
-const checkPermission = (requiredPermission) => async (req, res, next) => {
-  try {
-    const project = await projectService.getProjectById(req.params.id)
-    if (!project.permissions[requiredPermission].includes(req.user._id)) {
-      throw new ApiError(StatusCodes.FORBIDDEN, MESSAGES.FORBIDDEN)
-    }
-    next()
-  } catch (error) {
-    next(error)
-  }
-}
 
 /**
  * Xác thực dữ liệu tạo dự án mới
@@ -101,8 +101,7 @@ const validateUpdateMemberRole = async (req, res, next) => {
 }
 
 export const projectMiddleware = {
-  ensureAuthenticated,
-  checkPermission,
+  checkProjectPermission,
   validateCreate,
   validateUpdate,
   validateAddMember,
