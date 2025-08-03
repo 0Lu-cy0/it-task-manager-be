@@ -2,6 +2,8 @@ import { projectModel } from '~/models/projectModel'
 import { ApiError } from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 import { MESSAGES } from '~/constants/messages'
+import { projectRolesModel } from '~/models/projectRolesModel'
+import { getPermissionId } from '~/utils/permission'
 
 /**
  * Tạo một dự án mới trong cơ sở dữ liệu
@@ -26,7 +28,7 @@ const findOneById = async (id) => {
     .populate('created_by', 'name email')
     .populate('team_lead', 'name email')
     .populate('members.user_id', 'name email')
-    .populate('members.role_id', 'name')
+    .populate('members.project_role_id', 'name')
     .exec()
   if (!project || project._destroy) {
     throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
@@ -54,7 +56,7 @@ const getAll = async (filter = { _destroy: false }, sort = { created_at: -1 }, o
     .populate('created_by', 'name email')
     .populate('team_lead', 'name email')
     .populate('members.user_id', 'name email')
-    .populate('members.role_id', 'name')
+    .populate('members.project_role_id', 'name')
     .exec()
 }
 
@@ -75,29 +77,14 @@ const update = async (projectId, updateData) => {
     .populate('created_by', 'name email')
     .populate('team_lead', 'name email')
     .populate('members.user_id', 'name email')
-    .populate('members.role_id', 'name')
+    .populate('members.project_role_id', 'name')
     .exec()
-}
-
-/**
- * Xóa mềm dự án
- * @param {string} projectId - ID của dự án
- * @returns {boolean} Trả về true nếu xóa thành công
- * @throws {ApiError} Nếu dự án không tồn tại hoặc đã bị xóa mềm
- */
-const softDelete = async (projectId) => {
-  const project = await projectModel.findById(projectId)
-  if (!project || project._destroy) {
-    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
-  }
-  await projectModel.findByIdAndUpdate(projectId, { _destroy: true })
-  return true
 }
 
 /**
  * Thêm thành viên vào dự án
  * @param {string} projectId - ID của dự án
- * @param {Object} memberData - Thông tin thành viên (user_id, role_id, joined_at)
+ * @param {Object} memberData - Thông tin thành viên (user_id, project_role_id, joined_at)
  * @returns {Object} Dự án đã được cập nhật
  * @throws {ApiError} Nếu dự án không tồn tại hoặc đã bị xóa mềm
  */
@@ -108,13 +95,14 @@ const addMember = async (projectId, memberData) => {
   }
   project.members.push(memberData)
   project.member_count = project.members.length
-  return await project
-    .save()
-    .then(doc => doc.populate('created_by', 'name email')
-      .populate('team_lead', 'name email')
-      .populate('members.user_id', 'name email')
-      .populate('members.role_id', 'name')
-      .execPopulate())
+  const savedProject = await project.save()
+
+  return await savedProject.populate([
+    { path: 'created_by', select: 'name email' },
+    { path: 'team_lead', select: 'name email' },
+    { path: 'members.user_id', select: 'name email' },
+    { path: 'members.project_role_id', select: 'name' },
+  ])
 }
 
 /**
@@ -133,22 +121,25 @@ const removeMember = async (projectId, userId) => {
   project.member_count = project.members.length
   return await project
     .save()
-    .then(doc => doc.populate('created_by', 'name email')
-      .populate('team_lead', 'name email')
-      .populate('members.user_id', 'name email')
-      .populate('members.role_id', 'name')
-      .execPopulate())
+    .then(doc =>
+      doc
+        .populate('created_by', 'name email')
+        .populate('team_lead', 'name email')
+        .populate('members.user_id', 'name email')
+        .populate('members.project_role_id', 'name')
+        .execPopulate(),
+    )
 }
 
 /**
  * Cập nhật vai trò của thành viên trong dự án
  * @param {string} projectId - ID của dự án
  * @param {string} userId - ID của thành viên
- * @param {string} roleId - ID của vai trò mới
+ * @param {string} projectRoleId - ID của vai trò mới trong dự án
  * @returns {Object} Dự án đã được cập nhật
  * @throws {ApiError} Nếu dự án không tồn tại, đã bị xóa mềm hoặc thành viên không tồn tại
  */
-const updateMemberRole = async (projectId, userId, roleId) => {
+const updateMemberRole = async (projectId, userId, projectRoleId) => {
   const project = await projectModel.findById(projectId)
   if (!project || project._destroy) {
     throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
@@ -156,18 +147,57 @@ const updateMemberRole = async (projectId, userId, roleId) => {
   const updatedProject = await projectModel
     .findOneAndUpdate(
       { _id: projectId, 'members.user_id': userId },
-      { $set: { 'members.$.role_id': roleId } },
+      { $set: { 'members.$.project_role_id': projectRoleId } },
       { new: true },
     )
     .populate('created_by', 'name email')
     .populate('team_lead', 'name email')
     .populate('members.user_id', 'name email')
-    .populate('members.role_id', 'name')
+    .populate('members.project_role_id', 'name')
     .exec()
   if (!updatedProject) {
     throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.USER_NOT_MEMBER)
   }
   return updatedProject
+}
+
+const checkUserPermission = async (projectId, userId, permissionName) => {
+  const project = await projectModel.findOne({
+    _id: projectId,
+    'members.user_id': userId,
+  }).lean()
+  if (!project) return false
+  const member = project.members.find(
+    m => m.user_id.toString() === userId.toString(),
+  )
+  if (!member) return false
+  // Lấy permissionId từ cache
+  const permissionId = await getPermissionId(permissionName)
+  const role = await projectRolesModel.findOne(
+    {
+      _id: member.project_role_id,
+      permissions: permissionId,
+    },
+    { _id: 1 },
+  ).lean()
+  return !!role
+}
+
+/**
+ * Xóa mềm dự án
+ * @param {string} projectId - ID dự án
+ * @returns {Promise<boolean>} - Kết quả xóa
+ */
+const softDelete = async (projectId) => {
+  const project = await projectModel.findById(projectId)
+  if (!project || project._destroy) {
+    return false // hoặc throw ApiError(StatusCodes.CONFLICT, 'Project already deleted')
+  }
+  await projectModel.findByIdAndUpdate(projectId, {
+    _destroy: true,
+    deleted_at: new Date(),
+  })
+  return true
 }
 
 export const projectRepository = {
@@ -179,4 +209,5 @@ export const projectRepository = {
   addMember,
   removeMember,
   updateMemberRole,
+  checkUserPermission,
 }
