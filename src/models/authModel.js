@@ -2,6 +2,8 @@ import mongoose from 'mongoose'
 import bcrypt from 'bcrypt'
 import { MESSAGES } from '~/constants/messages'
 
+const USER_COLLECTION_NAME = 'users'
+
 const USER_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema(
   {
     email: {
@@ -81,4 +83,4 @@ USER_COLLECTION_SCHEMA_MONGOOSE.pre('save', async function (next) {
   next()
 })
 
-export const authModel = mongoose.model('User', USER_COLLECTION_SCHEMA_MONGOOSE)
+export const authModel = mongoose.model(USER_COLLECTION_NAME, USER_COLLECTION_SCHEMA_MONGOOSE)

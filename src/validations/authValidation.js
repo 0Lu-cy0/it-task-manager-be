@@ -23,9 +23,10 @@ const USER_COLLECTION_SCHEMA_JOI = Joi.object({
       'string.pattern.base': MESSAGES.PASSWORD_PATTERN,
       'any.required': MESSAGES.PASSWORD_REQUIRED,
     }),
-  full_name: Joi.string().min(3).max(50).allow(null).messages({
+  full_name: Joi.string().min(3).max(50).required().messages({
     'string.min': MESSAGES.NAME_MIN,
     'string.max': MESSAGES.NAME_MAX,
+    'any.required': MESSAGES.NAME_REQUIRED,
   }),
   avatar_url: Joi.string().uri().allow(null, '').messages({
     'string.uri': MESSAGES.AVATAR_INVALID,
@@ -49,7 +50,7 @@ const USER_COLLECTION_SCHEMA_JOI = Joi.object({
 
 /**
  * Schema Joi cho đăng ký người dùng
- * @description Tách riêng để kiểm soát chặt chẽ dữ liệu đầu vào, chỉ chấp nhận email và password
+ * @description Tách riêng để kiểm soát chặt chẽ dữ liệu đầu vào
  * @type {Joi.ObjectSchema}
  */
 const registerSchema = Joi.object({
@@ -67,11 +68,16 @@ const registerSchema = Joi.object({
       'string.pattern.base': MESSAGES.PASSWORD_PATTERN,
       'any.required': MESSAGES.PASSWORD_REQUIRED,
     }),
+  full_name: Joi.string().min(3).max(50).required().messages({
+    'string.min': MESSAGES.NAME_MIN,
+    'string.max': MESSAGES.NAME_MAX,
+    'any.required': MESSAGES.NAME_REQUIRED,
+  }),
 })
 
 /**
  * Schema Joi cho đăng nhập
- * @description Tách riêng để kiểm soát chặt chẽ dữ liệu đầu vào, chỉ chấp nhận email và password
+ * @description Tách riêng để kiểm soát chặt chẽ dữ liệu đầu vào
  * @type {Joi.ObjectSchema}
  */
 const loginSchema = Joi.object({
@@ -93,7 +99,7 @@ const loginSchema = Joi.object({
 
 /**
  * Schema Joi cho yêu cầu đặt lại mật khẩu
- * @description Tách riêng để kiểm soát chặt chẽ dữ liệu đầu vào, chỉ chấp nhận email
+ * @description Tách riêng để kiểm soát chặt chẽ dữ liệu đầu vào
  * @type {Joi.ObjectSchema}
  */
 const validateResetPasswordRequest = async (data) => {
@@ -112,7 +118,7 @@ const validateResetPasswordRequest = async (data) => {
 
 /**
  * Schema Joi cho xác nhận đặt lại mật khẩu
- * @description Tách riêng để kiểm soát chặt chẽ dữ liệu đầu vào, chỉ chấp nhận resetToken, newPassword, confirmPassword
+ * @description Tách riêng để kiểm soát chặt chẽ dữ liệu đầu vào
  * @type {Joi.ObjectSchema}
  */
 const validateResetPasswordConfirm = async (data) => {
@@ -147,7 +153,7 @@ const validateResetPasswordConfirm = async (data) => {
 
 /**
  * Xác thực dữ liệu trước khi đăng ký
- * @param {Object} data - Dữ liệu đăng ký (email, password)
+ * @param {Object} data - Dữ liệu đăng ký (email, password, full_name)
  * @returns {Object} Dữ liệu đã được xác thực
  * @throws {ApiError} Nếu dữ liệu không hợp lệ
  */
@@ -181,7 +187,8 @@ const validateBeforeLogin = async (data) => {
  */
 const validateProfileUpdate = async (data) => {
   const schema = Joi.object({
-    full_name: Joi.string().min(3).max(50).allow(null).messages({
+    full_name: Joi.string().min(3).max(50).messages({
+      // Không required vì là cập nhật
       'string.min': MESSAGES.NAME_MIN,
       'string.max': MESSAGES.NAME_MAX,
     }),
@@ -228,7 +235,7 @@ const validatePasswordChange = async (data) => {
         'string.min': MESSAGES.PASSWORD_MIN,
         'string.pattern.base': MESSAGES.PASSWORD_PATTERN,
         'any.required': MESSAGES.PASSWORD_REQUIRED,
-        'any.invalid': 'Mật khẩu mới phải khác mật khẩu hiện tại',
+        'any.invalid': MESSAGES.NEW_PASSWORD_DIFFRIENT,
       }),
     confirmPassword: Joi.string()
       .valid(Joi.ref('newPassword'))

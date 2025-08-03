@@ -1,56 +1,65 @@
 import bcrypt from 'bcrypt'
-import jwt from 'jsonwebtoken'
 import { randomBytes } from 'crypto'
-import nodemailer from 'nodemailer'
-import { authModel } from '~/models/authModel'
+import { authRepository } from '~/repository/authRepository'
 import { ApiError } from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 import { MESSAGES } from '~/constants/messages'
+import { hashPassword, generateToken, sendResetPasswordEmail } from '~/utils/authUtils'
 
 /**
- * Đăng ký người dùng mới
- * @param {Object} data - Dữ liệu đăng ký (email, password)
- * @returns {Object} Người dùng đã được tạo
- * @throws {ApiError} Nếu email đã tồn tại
+ * Registers a new user
+ * @param {Object} data - Registration data (email, password, full_name)
+ * @returns {Object} Created user
+ * @throws {ApiError} If email already exists
  */
 const register = async (data) => {
-  const { email, password } = data
-  const existingUser = await authModel.findOne({ email, _destroy: false })
+  const { email, password, full_name } = data
+  const existingUser = await authRepository.findUserByEmail(email)
   if (existingUser) {
     throw new ApiError(StatusCodes.CONFLICT, MESSAGES.EMAIL_ALREADY_EXISTS)
   }
-  const user = await authModel.create({ email, password })
-  return { _id: user._id, email: user.email }
+
+  const hashedPassword = await hashPassword(password)
+  const userData = {
+    email,
+    password: hashedPassword,
+    full_name: full_name || null,
+  }
+
+  const user = await authRepository.createUser(userData)
+  return { _id: user._id, email: user.email, full_name: user.full_name }
 }
 
 /**
- * Đăng nhập người dùng
- * @param {Object} data - Dữ liệu đăng nhập (email, password)
- * @returns {Object} Thông tin người dùng và token
- * @throws {ApiError} Nếu thông tin đăng nhập không hợp lệ
+ * Logs in a user
+ * @param {Object} data - Login data (email, password)
+ * @returns {Object} User info and JWT token
+ * @throws {ApiError} If credentials are invalid
  */
 const login = async (data) => {
   const { email, password } = data
-  const user = await authModel.findOne({ email, _destroy: false })
+  const user = await authRepository.findUserByEmail(email)
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.USER_NOT_FOUND)
   }
+
   const isMatch = await bcrypt.compare(password, user.password)
   if (!isMatch) {
     throw new ApiError(StatusCodes.UNAUTHORIZED, MESSAGES.INVALID_CREDENTIALS)
   }
-  const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET_KEY, { expiresIn: '1d' })
+
+  const token = generateToken({ _id: user._id })
   return { _id: user._id, email: user.email, token }
 }
 
 /**
- * Lấy thông tin người dùng
- * @param {string} userId - ID của người dùng
- * @returns {Object} Thông tin người dùng
- * @throws {ApiError} Nếu người dùng không tồn tại
+ * Gets user information
+ * @param {string} userId - User's ID
+ * @returns {Object} User info
+ * @throws {ApiError} If user not found
  */
 const getUser = async (userId) => {
-  const user = await authModel.findOne({ _id: userId, _destroy: false }).select('-password -resetToken -resetTokenExpiry')
+  const user = await authRepository.findUserById(userId)
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.USER_NOT_FOUND)
   }
@@ -58,18 +67,14 @@ const getUser = async (userId) => {
 }
 
 /**
- * Cập nhật hồ sơ người dùng
- * @param {string} userId - ID của người dùng
- * @param {Object} data - Dữ liệu cập nhật (full_name, avatar_url, phone, department, language)
- * @returns {Object} Thông tin người dùng đã cập nhật
- * @throws {ApiError} Nếu người dùng không tồn tại
+ * Updates user profile
+ * @param {string} userId - User's ID
+ * @param {Object} data - Data to update (full_name, avatar_url, phone, department, language)
+ * @returns {Object} Updated user info
+ * @throws {ApiError} If user not found
  */
 const updateProfile = async (userId, data) => {
-  const user = await authModel.findOneAndUpdate(
-    { _id: userId, _destroy: false },
-    { $set: data },
-    { new: true },
-  ).select('-password -resetToken -resetTokenExpiry')
+  const user = await authRepository.updateUserById(userId, data)
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.USER_NOT_FOUND)
   }
@@ -77,79 +82,64 @@ const updateProfile = async (userId, data) => {
 }
 
 /**
- * Đổi mật khẩu
- * @param {string} userId - ID của người dùng
- * @param {Object} data - Dữ liệu mật khẩu (currentPassword, newPassword)
+ * Changes user password
+ * @param {string} userId - User's ID
+ * @param {Object} data - Password data (currentPassword, newPassword)
  * @returns {void}
- * @throws {ApiError} Nếu mật khẩu hiện tại không đúng
+ * @throws {ApiError} If current password is incorrect or user not found
  */
 const changePassword = async (userId, data) => {
   const { currentPassword, newPassword } = data
-  const user = await authModel.findOne({ _id: userId, _destroy: false })
+  const user = await authRepository.findUserById(userId)
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.USER_NOT_FOUND)
   }
+
   const isMatch = await bcrypt.compare(currentPassword, user.password)
   if (!isMatch) {
     throw new ApiError(StatusCodes.UNAUTHORIZED, MESSAGES.INVALID_CREDENTIALS)
   }
-  user.password = newPassword
-  await user.save()
+
+  const hashedPassword = await hashPassword(newPassword)
+  await authRepository.updateUserById(userId, { password: hashedPassword })
 }
 
 /**
- * Yêu cầu đặt lại mật khẩu
- * @param {string} email - Email của người dùng
+ * Requests a password reset
+ * @param {string} email - User's email
  * @returns {void}
- * @throws {ApiError} Nếu email không tồn tại
+ * @throws {ApiError} If user not found
  */
 const requestResetPassword = async (email) => {
-  const user = await authModel.findOne({ email, _destroy: false })
+  const user = await authRepository.findUserByEmail(email)
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.USER_NOT_FOUND)
   }
-  const resetToken = randomBytes(32).toString('hex')
-  const resetTokenExpiry = Date.now() + 3600000 // Hết hạn sau 1 giờ
-  user.resetToken = resetToken
-  user.resetTokenExpiry = resetTokenExpiry
-  await user.save()
 
-  // Gửi email chứa link đặt lại mật khẩu
-  const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  })
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: 'Đặt lại mật khẩu',
-    html: `Nhấp vào link để đặt lại mật khẩu: <a href="${resetLink}">${resetLink}</a><br>Link này có hiệu lực trong 1 giờ.`,
-  })
+  const resetToken = randomBytes(32).toString('hex')
+  const resetTokenExpiry = Date.now() + 3600000 // 1 hour expiry
+  await authRepository.updateUserById(user._id, { resetToken, resetTokenExpiry })
+  await sendResetPasswordEmail(email, resetToken)
 }
 
 /**
- * Xác nhận đặt lại mật khẩu
- * @param {Object} data - Dữ liệu chứa resetToken, newPassword
+ * Confirms password reset
+ * @param {Object} data - Reset data (resetToken, newPassword)
  * @returns {void}
- * @throws {ApiError} Nếu token không hợp lệ hoặc hết hạn
+ * @throws {ApiError} If token is invalid or expired
  */
 const confirmResetPassword = async ({ resetToken, newPassword }) => {
-  const user = await authModel.findOne({
-    resetToken,
-    resetTokenExpiry: { $gt: Date.now() },
-    _destroy: false,
-  })
+  const user = await authRepository.findUserByResetToken(resetToken)
   if (!user) {
     throw new ApiError(StatusCodes.BAD_REQUEST, MESSAGES.INVALID_TOKEN)
   }
-  user.password = newPassword
-  user.resetToken = null
-  user.resetTokenExpiry = null
-  await user.save()
+
+  const hashedPassword = await hashPassword(newPassword)
+  await authRepository.updateUserById(user._id, {
+    password: hashedPassword,
+    resetToken: null,
+    resetTokenExpiry: null,
+  })
 }
 
 export const authService = {
