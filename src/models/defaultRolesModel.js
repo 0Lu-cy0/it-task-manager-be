@@ -21,21 +21,10 @@ const DEFAULT_ROLES_SCHEMA_MONGOOSE = new mongoose.Schema({
       required: true,
     },
   ],
-  created_at: {
-    type: Date,
-    default: Date.now,
-  },
-  updated_at: {
-    type: Date,
-    default: Date.now,
-  },
   _destroy: {
     type: Boolean,
     default: false,
   },
-}).pre('save', function (next) {
-  this.updated_at = Date.now()
-  next()
-})
+}, { timestamps: true })
 
 export const defaultRolesModel = mongoose.model(DEFAULT_ROLES_NAME, DEFAULT_ROLES_SCHEMA_MONGOOSE)

@@ -54,20 +54,12 @@ const USER_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema(
       type: Date,
       default: null,
     },
-    created_at: {
-      type: Date,
-      default: Date.now,
-    },
-    updated_at: {
-      type: Date,
-      default: Date.now,
-    },
     _destroy: {
       type: Boolean,
       default: false,
     },
   },
-  { timestamps: false },
+  { timestamps: true },
 )
 
 // Mã hóa mật khẩu trước khi lưu

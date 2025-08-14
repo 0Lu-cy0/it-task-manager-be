@@ -33,3 +33,13 @@
 {"level":"error","message":"Lỗi khi cập nhật dự án undefined: Dự án không tồn tại hoặc đã bị xóa"}
 {"level":"error","message":"Lỗi khi cập nhật dự án undefined: Dự án không tồn tại hoặc đã bị xóa"}
 {"level":"info","message":"Dự án 688f35401e075a05a7cae4bc được cập nhật bởi 64f7b1c8e29b41d4a7164001"}
+{"level":"info","message":"Dự án mới được tạo bởi 64f7b1c8e29b41d4a7164001: 688f443cb887243fc9645b3c"}
+{"level":"info","message":"Dự án mới được tạo bởi 64f7b1c8e29b41d4a7164001: 688f704617d1857885e3611a"}
+{"level":"info","message":"Dự án mới được tạo bởi 64f7b1c8e29b41d4a7164001: 688f707517d1857885e3612f"}
+{"level":"error","message":"Lỗi khi cập nhật dự án 688f707517d1857885e3612f: Dự án không tồn tại hoặc đã bị xóa"}
+{"level":"error","message":"Lỗi khi cập nhật dự án 688f707517d1857885e3612f: Dự án không tồn tại hoặc đã bị xóa"}
+{"level":"info","message":"Dự án 688f707517d1857885e3612f được cập nhật bởi 64f7b1c8e29b41d4a7164001"}
+{"level":"info","message":"Dự án mới được tạo bởi 64f7b1c8e29b41d4a7164001: 688f7face6772b1b54f9d7a0"}
+{"level":"error","message":"Lỗi khi lấy dự án undefined: Dự án không tồn tại hoặc đã bị xóa"}
+{"level":"error","message":"Lỗi khi lấy dự án undefined: Dự án không tồn tại hoặc đã bị xóa"}
+{"level":"error","message":"Lỗi khi lấy dự án undefined: Dự án không tồn tại hoặc đã bị xóa"}

@@ -1,58 +1,100 @@
 import { projectRolesModel } from '~/models/projectRolesModel'
+import { permissionModel } from '~/models/permissionModel' // Giả định model permissions tồn tại; thêm nếu chưa có
 import { ApiError } from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
+import { projectModel } from '~/models/projectModel' // Sử dụng projectModel thay vì ProjectMember
 
-/**
- * Lấy tất cả vai trò của một dự án
- * @param {string} projectId - ID của dự án
- * @returns {Array} Danh sách vai trò
- */
-const findByProjectId = async (projectId) => {
-  return await projectRolesModel
-    .find({ project_id: projectId, _destroy: false })
-    .populate('permissions')
-    .lean()
-    .exec()
-}
+export const projectRoleRepo = {
+  findByProjectId: async (projectId) => {
+    return await projectRolesModel
+      .find({ project_id: projectId, _destroy: false })
+      .populate('permissions')
+      .lean()
+      .exec()
+  },
 
-// /**
-//  * Tạo vai trò dự án mới
-//  * @param {Object} data - Dữ liệu vai trò
-//  * @returns {Object} Vai trò đã được tạo
-//  * @throws {ApiError} Nếu vai trò đã tồn tại trong dự án
-//  */
-// const create = async (data) => {
-//   const existingRole = await projectRolesModel.findOne({
-//     project_id: data.project_id,
-//     name: data.name,
-//     _destroy: false,
-//   }).lean()
-//   if (existingRole) {
-//     throw new ApiError(StatusCodes.CONFLICT, 'Vai trò đã tồn tại trong dự án')
-//   }
-//   return await projectRolesModel.create(data)
-// }
+  findRoleById: async (roleId) => {
+    return await projectRolesModel.findById(roleId)
+  },
 
-/**
- * Cập nhật vai trò dự án
- * @param {string} id - ID vai trò
- * @param {Object} data - Dữ liệu cập nhật
- * @returns {Object} Vai trò đã được cập nhật
- * @throws {ApiError} Nếu vai trò không tồn tại
- */
-const update = async (id, data) => {
-  const role = await projectRolesModel
-    .findOneAndUpdate({ _id: id, _destroy: false }, { $set: data }, { new: true })
-    .populate('permissions')
-    .lean()
-  if (!role) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Vai trò không tồn tại')
-  }
-  return role
-}
+  // Gán role cho member (update member's role trong project.members)
+  assignRoleToMember: async (projectId, memberId, roleId) => {
+    // Cập nhật project.members.$.project_role_id
+    const updatedProject = await projectModel
+      .findOneAndUpdate(
+        { _id: projectId, 'members.user_id': memberId },
+        { $set: { 'members.$.project_role_id': roleId } },
+        { new: true },
+      )
+      .populate('members.user_id', 'name email')
+      .populate('members.project_role_id', 'name')
+      .lean()
+    // Trả về member vừa cập nhật (nếu cần)
+    if (!updatedProject) return null
+    const updatedMember = updatedProject.members.find((m) => m.user_id.toString() === memberId.toString())
+    return updatedMember || null
+  },
 
-export const projectRolesRepository = {
-  findByProjectId,
-  // create,
-  update,
+  // Kiểm tra member thuộc project
+  findMemberById: async (projectId, memberId) => {
+    const project = await projectModel
+      .findOne(
+        { _id: projectId, 'members.user_id': memberId },
+        { members: 1 },
+      )
+      .populate('members.project_role_id', 'name')
+    if (!project) return null
+    return project.members.find((m) => m.user_id.toString() === memberId.toString()) || null
+  },
+
+  addPermissionToRole: async (roleId, permissionId) => {
+    const permission = await permissionModel.findOne({ _id: permissionId }).lean()
+    if (!permission) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Permission không tồn tại')
+    }
+
+    return await projectRolesModel
+      .findOneAndUpdate(
+        { _id: roleId, _destroy: false },
+        { $addToSet: { permissions: permissionId } }, // Ngăn chặn duplicate
+        { new: true },
+      )
+      .populate('permissions')
+      .lean()
+  },
+
+  removePermissionFromRole: async (roleId, permissionId) => {
+    const permission = await permissionModel.findOne({ _id: permissionId }).lean()
+    if (!permission) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Permission không tồn tại')
+    }
+
+    return await projectRolesModel
+      .findOneAndUpdate(
+        { _id: roleId, _destroy: false },
+        { $pull: { permissions: permissionId } },
+        { new: true },
+      )
+      .populate('permissions')
+      .lean()
+  },
+
+  getPermissionsOfRole: async (roleId) => {
+    const role = await projectRolesModel.findOne({ _id: roleId, _destroy: false }).populate('permissions').lean()
+    if (!role) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Role không tồn tại')
+    }
+    return role.permissions
+  },
+
+  update: async (id, data) => {
+    const role = await projectRolesModel
+      .findOneAndUpdate({ _id: id, _destroy: false }, { $set: data }, { new: true })
+      .populate('permissions')
+      .lean()
+    if (!role) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Vai trò không tồn tại')
+    }
+    return role
+  },
 }

@@ -7,14 +7,6 @@ const logger = winston.createLogger({
   transports: [new winston.transports.File({ filename: 'project.log' })],
 })
 
-/**
- * Tạo một dự án mới
- * @param {Object} req - Request chứa dữ liệu dự án
- * @param {Object} res - Response trả về kết quả
- * @param {Function} next - Middleware xử lý lỗi
- * @returns {Object} Dự án đã được tạo
- * @throws {ApiError} Nếu dữ liệu không hợp lệ hoặc lỗi server
- */
 const createNew = async (req, res, next) => {
   try {
     const result = await projectService.createNew({
@@ -33,14 +25,6 @@ const createNew = async (req, res, next) => {
   }
 }
 
-/**
- * Cập nhật thông tin dự án
- * @param {Object} req - Request chứa ID dự án và dữ liệu cập nhật
- * @param {Object} res - Response trả về kết quả
- * @param {Function} next - Middleware xử lý lỗi
- * @returns {Object} Dự án đã được cập nhật
- * @throws {ApiError} Nếu dự án không tồn tại, không có quyền hoặc dữ liệu không hợp lệ
- */
 const update = async (req, res, next) => {
   try {
     const { projectId } = req.params
@@ -57,20 +41,11 @@ const update = async (req, res, next) => {
   }
 }
 
-/**
- * Xóa mềm dự án
- * @param {Object} req - Request chứa ID dự án
- * @param {Object} res - Response trả về kết quả
- * @param {Function} next - Middleware xử lý lỗi
- * @throws {ApiError} Nếu dự án không tồn tại hoặc không có quyền
- * @route DELETE /api/projects/:projectId
- * @access Private (cần có quyền delete_project)
- */
 const deleteProject = async (req, res, next) => {
   try {
     const { projectId } = req.params
     const deleted = projectService.deleteProject(projectId)
-    if (deleted) {
+    if (!deleted) {
       res.status(StatusCodes.NOT_FOUND).json({
         status: 'error',
         message: MESSAGES.PROJECT_NOT_FOUND,
@@ -88,14 +63,6 @@ const deleteProject = async (req, res, next) => {
   }
 }
 
-/**
- * Lấy tất cả dự án của người dùng
- * @param {Object} req - Request chứa thông tin người dùng và query
- * @param {Object} res - Response trả về danh sách dự án
- * @param {Function} next - Middleware xử lý lỗi
- * @returns {Array} Danh sách dự án
- * @throws {ApiError} Nếu không tìm thấy dự án hoặc lỗi server
- */
 const getAllProjects = async (req, res, next) => {
   try {
     const result = await projectService.getAll(req.user._id, req.query)
@@ -110,18 +77,10 @@ const getAllProjects = async (req, res, next) => {
   }
 }
 
-/**
- * Lấy thông tin dự án theo ID
- * @param {Object} req - Request chứa ID dự án
- * @param {Object} res - Response trả về thông tin dự án
- * @param {Function} next - Middleware xử lý lỗi
- * @returns {Object} Thông tin dự án
- * @throws {ApiError} Nếu dự án không tồn tại
- */
 const getById = async (req, res, next) => {
   try {
-    const { id } = req.params
-    const result = await projectService.getProjectById(id)
+    const { projectId } = req.params
+    const result = await projectService.getProjectById(projectId)
     return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Dự án được lấy thành công',
@@ -133,15 +92,7 @@ const getById = async (req, res, next) => {
   }
 }
 
-/**
- * Thêm thành viên vào dự án
- * @param {Object} req - Request chứa ID dự án và thông tin thành viên
- * @param {Object} res - Response trả về kết quả
- * @param {Function} next - Middleware xử lý lỗi
- * @returns {Object} Dự án đã được cập nhật
- * @throws {ApiError} Nếu dự án không tồn tại, không có quyền hoặc thành viên đã tồn tại
- */
-const addMember = async (req, res, next) => {
+const addProjectMember = async (req, res, next) => {
   try {
     const { id } = req.params
     const result = await projectService.addProjectMember(id, req.body, req.user._id)
@@ -157,13 +108,6 @@ const addMember = async (req, res, next) => {
   }
 }
 
-/**
- * Xóa thành viên khỏi dự án
- * @param {Object} req - Request chứa ID dự án và ID người dùng
- * @param {Object} res - Response trả về kết quả
- * @param {Function} next - Middleware xử lý lỗi
- * @throws {ApiError} Nếu dự án không tồn tại, không có quyền hoặc thành viên không tồn tại
- */
 const removeMember = async (req, res, next) => {
   try {
     const { id, userId } = req.params
@@ -179,14 +123,6 @@ const removeMember = async (req, res, next) => {
   }
 }
 
-/**
- * Cập nhật vai trò của thành viên trong dự án
- * @param {Object} req - Request chứa ID dự án, ID người dùng và vai trò mới
- * @param {Object} res - Response trả về kết quả
- * @param {Function} next - Middleware xử lý lỗi
- * @returns {Object} Dự án đã được cập nhật
- * @throws {ApiError} Nếu dự án không tồn tại, không có quyền hoặc vai trò không hợp lệ
- */
 const updateMemberRole = async (req, res, next) => {
   try {
     const { id, userId } = req.params
@@ -204,14 +140,6 @@ const updateMemberRole = async (req, res, next) => {
   }
 }
 
-/**
- * Lấy danh sách vai trò của dự án
- * @param {Object} req - Request chứa ID dự án
- * @param {Object} res - Response trả về danh sách vai trò
- * @param {Function} next - Middleware xử lý lỗi
- * @returns {Array} Danh sách vai trò
- * @throws {ApiError} Nếu dự án không tồn tại
- */
 const getProjectRoles = async (req, res, next) => {
   try {
     const { id } = req.params
@@ -227,14 +155,6 @@ const getProjectRoles = async (req, res, next) => {
   }
 }
 
-/**
- * Lấy thông tin lead của dự án
- * @param {Object} req - Request chứa ID dự án
- * @param {Object} res - Response trả về thông tin lead
- * @param {Function} next - Middleware xử lý lỗi
- * @returns {Object|null} Thông tin lead
- * @throws {ApiError} Nếu dự án không tồn tại
- */
 const getProjectLead = async (req, res, next) => {
   try {
     const { id } = req.params
@@ -250,15 +170,33 @@ const getProjectLead = async (req, res, next) => {
   }
 }
 
+const toggleFreeMode = async (req, res, next) => {
+  try {
+    const { projectId } = req.params
+    const { free_mode } = req.body
+    const currentUserId = req.user._id
+
+    const updatedProject = await projectService.toggleFreeMode({ projectId, free_mode, currentUserId })
+
+    res.status(StatusCodes.OK).json({
+      message: 'Cập nhật free_mode thành công',
+      free_mode: updatedProject.free_mode,
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
 export const projectController = {
   createNew,
   update,
   deleteProject,
   getAllProjects,
   getById,
-  addMember,
+  addProjectMember,
   removeMember,
   updateMemberRole,
   getProjectRoles,
   getProjectLead,
+  toggleFreeMode,
 }

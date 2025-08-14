@@ -1,21 +1,68 @@
 import express from 'express'
-import { projectRolesController } from '~/controllers/projectRolesController'
+import rateLimit from 'express-rate-limit' // Thêm thư viện này nếu chưa có
+import { projectRoleController } from '~/controllers/projectRolesController'
 import { authMiddleware } from '~/middlewares/authMiddleware'
-import { rolesMiddleware } from '~/middlewares/rolesMiddleware'
+import { projectRoleMiddleware } from '~/middlewares/projectRoleMiddleware'
 
 const router = express.Router()
 
+// Thêm rate limiting (giới hạn 100 request mỗi 15 phút)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 phút
+  max: 100, // Giới hạn 100 request mỗi IP
+})
+router.use(limiter)
+
+// Thêm permission vào role
+router.post(
+  '/:projectId/roles/:roleId/permissions',
+  authMiddleware.verifyToken,
+  projectRoleMiddleware.checkProjectPermission('change_member_role'),
+  projectRoleMiddleware.validateAddPermission,
+  projectRoleController.addPermission,
+)
+
+// Xóa permission khỏi role
+router.delete(
+  '/:projectId/roles/:roleId/permissions/:permissionId',
+  authMiddleware.verifyToken,
+  projectRoleMiddleware.checkProjectPermission('change_member_role'),
+  projectRoleMiddleware.validateRemovePermission,
+  projectRoleController.removePermission,
+)
+
+// Lấy danh sách permission của role
+router.get(
+  '/:projectId/roles/:roleId/permissions',
+  authMiddleware.verifyToken,
+  projectRoleMiddleware.checkProjectPermission('view_project'),
+  projectRoleMiddleware.validateGetPermissions,
+  projectRoleController.getPermissions,
+)
+
+// Giữ route từ file của bạn
 router.get(
   '/projects/:projectId/roles',
   authMiddleware.verifyToken,
-  rolesMiddleware.checkProjectPermission('view_project'), // Yêu cầu quyền xem dự án
-  projectRolesController.getAll,
+  projectRoleMiddleware.checkProjectPermission('view_project'),
+  projectRoleController.getAll,
 )
+
 router.put(
-  '/project-roles/:id',
+  '/:projectId/roles/:id', // Sửa để bao gồm projectId, nhất quán hơn
   authMiddleware.verifyToken,
-  rolesMiddleware.checkProjectPermission('change_member_role'), // Yêu cầu quyền thay đổi vai trò
-  projectRolesController.update,
+  projectRoleMiddleware.checkProjectPermission('change_member_role'),
+  projectRoleMiddleware.validateUpdate,
+  projectRoleController.update,
+)
+
+// Gán role cho member trong project
+router.post(
+  '/:projectId/members/:memberId/role',
+  authMiddleware.verifyToken,
+  projectRoleMiddleware.checkProjectPermission('change_member_role'),
+  projectRoleMiddleware.validateAssignRole,
+  projectRoleController.assignRole,
 )
 
 export const APIs_project_roles = router
