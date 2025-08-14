@@ -24,11 +24,16 @@ const createNew = async (data) => {
 const findOneById = async (id) => {
   const project = await projectModel
     .findById(id)
-    .lean()
     .populate('created_by', 'name email')
     .populate('team_lead', 'name email')
     .populate('members.user_id', 'name email')
     .populate('members.project_role_id', 'name')
+    .populate({
+      path: 'tasks',
+      match: { _destroy: false },
+      select: 'name priority description status',
+    })
+    .lean()
     .exec()
   if (!project || project._destroy) {
     throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
@@ -46,19 +51,19 @@ const findOneById = async (id) => {
  */
 const getAll = async (filter = { _destroy: false }, sort = { created_at: -1 }, options = {}) => {
   if (!filter || typeof filter !== 'object') {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Bộ lọc không hợp lệ')
+    throw new ApiError(StatusCodes.BAD_REQUEST, MESSAGES.INVALID_FILTER)
   }
-  return await projectModel
+  const projects = await projectModel
     .find(filter)
     .sort(sort)
     .setOptions(options)
+    .select('-start_date -created_by -deputy_lead -created_at -updated_at -__v')
+    .populate('team_lead', 'full_name')
     .lean()
-    .populate('created_by', 'name email')
-    .populate('team_lead', 'name email')
-    .populate('members.user_id', 'name email')
-    .populate('members.project_role_id', 'name')
     .exec()
+  return projects
 }
+
 
 /**
  * Cập nhật thông tin dự án
@@ -131,14 +136,6 @@ const removeMember = async (projectId, userId) => {
     )
 }
 
-/**
- * Cập nhật vai trò của thành viên trong dự án
- * @param {string} projectId - ID của dự án
- * @param {string} userId - ID của thành viên
- * @param {string} projectRoleId - ID của vai trò mới trong dự án
- * @returns {Object} Dự án đã được cập nhật
- * @throws {ApiError} Nếu dự án không tồn tại, đã bị xóa mềm hoặc thành viên không tồn tại
- */
 const updateMemberRole = async (projectId, userId, projectRoleId) => {
   const project = await projectModel.findById(projectId)
   if (!project || project._destroy) {
@@ -162,24 +159,34 @@ const updateMemberRole = async (projectId, userId, projectRoleId) => {
 }
 
 const checkUserPermission = async (projectId, userId, permissionName) => {
+  // 1️⃣ Tìm project chứa user này
   const project = await projectModel.findOne({
     _id: projectId,
     'members.user_id': userId,
   }).lean()
-  if (!project) return false
-  const member = project.members.find(
-    m => m.user_id.toString() === userId.toString(),
-  )
-  if (!member) return false
-  // Lấy permissionId từ cache
+  if (!project) {
+    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
+  }
+
+  // 2️⃣ Lấy tất cả roles của user trong project
+  const memberRoles = project.members
+    .filter(m => m.user_id.toString() === userId.toString())
+    .map(m => m.project_role_id)
+  if (memberRoles.length === 0) return false
+
+  // 3️⃣ Owner không cần permission, luôn bypass
+  const ownerRole = await projectRolesModel.findOne({
+    _id: { $in: memberRoles },
+    name: 'owner',
+  }, { _id: 1 }).lean()
+  if (ownerRole) return true
+
+  // 4️⃣ Check permission bình thường
   const permissionId = await getPermissionId(permissionName)
-  const role = await projectRolesModel.findOne(
-    {
-      _id: member.project_role_id,
-      permissions: permissionId,
-    },
-    { _id: 1 },
-  ).lean()
+  const role = await projectRolesModel.findOne({
+    _id: { $in: memberRoles },
+    permissions: permissionId,
+  }, { _id: 1 }).lean()
   return !!role
 }
 
@@ -200,6 +207,23 @@ const softDelete = async (projectId) => {
   return true
 }
 
+/**
+ * Cập nhật free_mode của project
+ * @param {string} projectId
+ * @param {boolean} freeModeValue
+ * @returns {Object} Project đã cập nhật
+ * @throws {ApiError} Nếu project không tồn tại
+ */
+const updateFreeMode = async (projectId, freeModeValue) => {
+  const project = await projectModel.findById(projectId)
+  if (!project || project._destroy) {
+    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
+  }
+  project.free_mode = freeModeValue
+  await project.save()
+  return project
+}
+
 export const projectRepository = {
   createNew,
   findOneById,
@@ -210,4 +234,5 @@ export const projectRepository = {
   removeMember,
   updateMemberRole,
   checkUserPermission,
+  updateFreeMode,
 }
