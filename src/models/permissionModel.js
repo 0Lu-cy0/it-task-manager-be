@@ -7,7 +7,6 @@ const PERMISSION_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema({
     type: String,
     required: true,
     minlength: 5,
-    maxlength: 50,
     trim: true,
     index: true,
     unique: true,
@@ -16,7 +15,7 @@ const PERMISSION_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema({
     type: String,
     default: null,
   },
-  catetory: {
+  category: {
     type: String,
     required: true,
     enum: [
@@ -27,21 +26,10 @@ const PERMISSION_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema({
       'noti',
     ],
   },
-  created_at: {
-    type: Date,
-    default: Date.now,
-  },
-  updated_at: {
-    type: Date,
-    default: Date.now,
-  },
   _destroy: {
     type: Boolean,
     default: false,
   },
-}).pre('save', function (next) {
-  this.updated_at = Date.now()
-  next()
-})
+}, { timestamps: true })
 
 export const permissionModel = mongoose.model(PERMISSION_COLLECTION_NAME, PERMISSION_COLLECTION_SCHEMA_MONGOOSE)

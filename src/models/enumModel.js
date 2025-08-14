@@ -11,12 +11,7 @@ const ENUM_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema({
     jp: { type: String, required: true },
     fr: { type: String, required: true },
   },
-  created_at: { type: Date, default: Date.now },
-  updated_at: { type: Date, default: Date.now },
-}).pre('save', function (next) {
-  this.updated_at = Date.now()
-  next()
-})
+}, { timestamps: true })
 
 export const enumModel = mongoose.model(
   ENUM_COLLECTION_NAME,

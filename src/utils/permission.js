@@ -11,6 +11,7 @@ export const getPermissionId = async (permissionName) => {
 
   const permission = await permissionModel.findOne(
     { name: permissionName },
+    { _destroy: false },
     { _id: 1 },
   ).lean()
 
