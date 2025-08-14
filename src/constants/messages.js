@@ -18,6 +18,7 @@ export const MESSAGES = {
   FORBIDDEN: 'Bạn không có quyền thực hiện hành động này',
   UNAUTHORIZED: 'Yêu cầu xác thực',
   INVALID_DATA: 'Dữ liệu không hợp lệ',
+  INVALID_FILTER: 'Bộ lọc không hợp lệ',
   NO_PROJECTS_FOUND: 'Không tìm thấy dự án nào',
   END_DATE_INVALID: 'Ngày kết thúc phải sau ngày bắt đầu',
   TITLE_REQUIRED: 'Tên dự án là bắt buộc',
@@ -58,5 +59,16 @@ export const MESSAGES = {
   PROJECT_ID_NOT_FOUND: 'Thiếu hoặc sai projectId trong params',
   USERID_NOT_FOUND: 'Không tìm thấy userId, bạn chưa đăng nhập ?',
   PERMISSION_NAME_NOT_FOUND: 'Không tìm thấy permissionName ở đầu vào',
+  //Project Role message
+  OBJECT_ID_INVALID: 'ID không hợp lệ',
+  ROLE_NAME_EMPTY: 'Tên vai trò không được để trống',
+  PROJECT_ID_REQUIRED: 'Project ID là bắt buộc',
+  DEFAULT_ROLE_ID_REQUIRED: 'Default Role ID là bắt buộc',
+  PERMISSION_ID_REQUIRED: 'Permission ID là bắt buộc',
+  PERMISSIONS_ARRAY: 'Permissions phải là mảng',
+  MEMBER_ID_REQUIRED: 'Member ID là bắt buộc',
+  ROLE_ID_REQUIRED: 'Role ID là bắt buộc',
+  PERMISSIONS_REQUIRED: 'Danh sách quyền là bắt buộc',
+  PERMISSIONS_MAX: 'Danh sách quyền không được vượt quá 50 mục',
 
 }

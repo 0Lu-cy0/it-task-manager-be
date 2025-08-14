@@ -8,7 +8,6 @@ const PROJECT_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema({
   description: { type: String, default: null },
   status: { type: String, required: true, enum: ['planning', 'in_progress', 'testing', 'completed'], index: true },
   priority: { type: String, required: true, enum: ['low', 'medium', 'high'], index: true },
-  progress: { type: Number, default: 0, min: 0, max: 100 },
   start_date: { type: Date, default: null },
   end_date: {
     type: Date,
@@ -22,7 +21,6 @@ const PROJECT_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema({
   },
   created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true, index: true },
   team_lead: { type: mongoose.Schema.Types.ObjectId, ref: 'users', default: null },
-  deputy_lead: { type: mongoose.Schema.Types.ObjectId, ref: 'users', default: null },
   members: {
     type: [
       {
@@ -34,13 +32,15 @@ const PROJECT_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema({
     ],
     default: [],
     validate: [
+      // Validator 1: Chặn trùng (user_id + role)
       {
         validator: function (members) {
-          const userIds = members.map(member => member.user_id.toString())
-          return new Set(userIds).size === userIds.length
+          const combos = members.map(m => `${m.user_id.toString()}_${m.project_role_id.toString()}`)
+          return new Set(combos).size === combos.length
         },
-        message: 'Không được phép có user_id trùng lặp trong danh sách thành viên',
+        message: 'Không được phép có user_id với cùng project_role_id trùng lặp',
       },
+      // Validator 2: Tối đa 1 lead
       {
         validator: async function (members) {
           const leadRoleIds = (
@@ -53,14 +53,21 @@ const PROJECT_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema({
       },
     ],
   },
+
   member_count: { type: Number, default: 0 },
-  created_at: { type: Date, default: Date.now },
-  updated_at: { type: Date, default: Date.now },
   _destroy: { type: Boolean, default: false },
-}).pre('save', function (next) {
-  this.updated_at = Date.now()
-  this.member_count = this.members ? this.members.length : 0
-  next()
+  free_mode: { type: Boolean, default: false },
+}, { timestamps: true })
+
+// Virtual: Liên kết Project với Task
+PROJECT_COLLECTION_SCHEMA_MONGOOSE.virtual('tasks', {
+  ref: 'tasks', // Tên model Task
+  localField: '_id', // Trường ở Project
+  foreignField: 'projectId', // Trường ở Task liên kết Project
 })
+
+// Bật virtual khi convert sang JSON hoặc Object
+PROJECT_COLLECTION_SCHEMA_MONGOOSE.set('toObject', { virtuals: true })
+PROJECT_COLLECTION_SCHEMA_MONGOOSE.set('toJSON', { virtuals: true })
 
 export const projectModel = mongoose.model(PROJECT_COLLECTION_NAME, PROJECT_COLLECTION_SCHEMA_MONGOOSE)

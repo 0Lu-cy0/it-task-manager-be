@@ -7,13 +7,8 @@ const CONVERSATION_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema({
   name: { type: String, default: null },
   members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'users' }],
   created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true },
-  created_at: { type: Date, default: Date.now },
-  updated_at: { type: Date, default: Date.now },
   _destroy: { type: Boolean, default: false },
-}).pre('save', function (next) {
-  this.updated_at = Date.now()
-  next()
-})
+}, { timestamps: true })
 
 export const conversationModel = mongoose.model(
   CONVERSATION_COLLECTION_NAME,

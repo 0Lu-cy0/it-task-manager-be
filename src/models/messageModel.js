@@ -7,12 +7,8 @@ const MESSAGE_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema({
   sender_id: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true },
   content: { type: String, required: true },
   is_read: { type: Boolean, default: false },
-  created_at: { type: Date, default: Date.now },
   _destroy: { type: Boolean, default: false },
-}).pre('save', function (next) {
-  this.updated_at = Date.now()
-  next()
-})
+}, { timestamps: true })
 
 export const messageModel = mongoose.model(
   MESSAGE_COLLECTION_NAME,

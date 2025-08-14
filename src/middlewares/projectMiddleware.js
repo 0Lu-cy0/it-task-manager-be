@@ -1,6 +1,7 @@
 import { projectValidation } from '~/validations/projectValidation'
 import { projectService } from '~/services/projectService'
-// import { projectRolesModel } from '~/models/projectRolesModel'
+import { projectRolesModel } from '~/models/projectRolesModel'
+import { projectModel } from '~/models/projectModel'
 import { ApiError } from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 import { MESSAGES } from '~/constants/messages'
@@ -20,6 +21,7 @@ const checkProjectPermission = (permissionName) => {
       if (!permissionName) {
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, MESSAGES.PERMISSION_NAME_NOT_FOUND)
       }
+
       const hasPermission = await projectService.verifyProjectPermission(
         projectId,
         userId,
@@ -35,14 +37,6 @@ const checkProjectPermission = (permissionName) => {
   }
 }
 
-
-/**
- * Xác thực dữ liệu tạo dự án mới
- * @param {Object} req - Request chứa dữ liệu dự án
- * @param {Object} res - Response trả về
- * @param {Function} next - Middleware tiếp theo
- * @throws {ApiError} Nếu dữ liệu không hợp lệ
- */
 const validateCreate = async (req, res, next) => {
   try {
     await projectValidation.validateBeforeCreate(req.body)
@@ -52,13 +46,6 @@ const validateCreate = async (req, res, next) => {
   }
 }
 
-/**
- * Xác thực dữ liệu cập nhật dự án
- * @param {Object} req - Request chứa dữ liệu cập nhật
- * @param {Object} res - Response trả về
- * @param {Function} next - Middleware tiếp theo
- * @throws {ApiError} Nếu dữ liệu không hợp lệ
- */
 const validateUpdate = async (req, res, next) => {
   try {
     await projectValidation.validateUpdate(req.body)
@@ -68,13 +55,6 @@ const validateUpdate = async (req, res, next) => {
   }
 }
 
-/**
- * Xác thực dữ liệu thêm thành viên vào dự án
- * @param {Object} req - Request chứa thông tin thành viên
- * @param {Object} res - Response trả về
- * @param {Function} next - Middleware tiếp theo
- * @throws {ApiError} Nếu dữ liệu không hợp lệ
- */
 const validateAddMember = async (req, res, next) => {
   try {
     await projectValidation.validateAddMember(req.body)
@@ -84,19 +64,35 @@ const validateAddMember = async (req, res, next) => {
   }
 }
 
-/**
- * Xác thực dữ liệu cập nhật vai trò thành viên
- * @param {Object} req - Request chứa thông tin vai trò
- * @param {Object} res - Response trả về
- * @param {Function} next - Middleware tiếp theo
- * @throws {ApiError} Nếu dữ liệu không hợp lệ
- */
 const validateUpdateMemberRole = async (req, res, next) => {
   try {
+    console.log(req.body)
     await projectValidation.validateUpdateMemberRole(req.body)
     next()
   } catch (error) {
     next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, error.message))
+  }
+}
+
+const checkIsOwner = async (req, res, next) => {
+  try {
+    const { projectId } = req.params
+    const currentUserId = req.user._id
+    const project = await projectModel.findById(projectId)
+    if (!project || project._destroy) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Project không tồn tại')
+    }
+    const member = project.members.find((m) => m.user_id.toString() === currentUserId.toString())
+    if (!member) throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc project này')
+    const ownerRole = await projectRolesModel.findOne({
+      _id: member.project_role_id,
+      name: 'owner',
+      project_id: projectId,
+    })
+    if (!ownerRole) throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ owner mới được phép thao tác')
+    next()
+  } catch (error) {
+    next(error)
   }
 }
 
@@ -106,4 +102,5 @@ export const projectMiddleware = {
   validateUpdate,
   validateAddMember,
   validateUpdateMemberRole,
+  checkIsOwner,
 }
