@@ -20,7 +20,6 @@ const validateAddPermission = async (req, res, next) => {
     await projectRoleValidation.validateAddPermission(req.body)
     next()
   } catch (error) {
-    console.error('Validation error in validateAddPermission:', error.message)
     next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, error.message))
   }
 }
@@ -30,7 +29,6 @@ const validateRemovePermission = async (req, res, next) => {
     await projectRoleValidation.validateRemovePermission(req.params)
     next()
   } catch (error) {
-    console.error('Validation error in validateRemovePermission:', error.message)
     next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, error.message))
   }
 }
@@ -40,7 +38,6 @@ const validateGetPermissions = async (req, res, next) => {
     await projectRoleValidation.validateGetPermissions(req.params)
     next()
   } catch (error) {
-    console.error('Validation error in validateGetPermissionsaaaa:', error.message)
     next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, error.message))
   }
 }
@@ -50,7 +47,6 @@ const validateUpdate = async (req, res, next) => {
     await projectRoleValidation.validateUpdate(req.body)
     next()
   } catch (error) {
-    console.error('Validation error in validateUpdate:', error.message)
     next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, error.message))
   }
 }

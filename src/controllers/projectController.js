@@ -125,10 +125,9 @@ const removeMember = async (req, res, next) => {
 
 const updateMemberRole = async (req, res, next) => {
   try {
-    const { id, userId } = req.params
-    const roleData = { user_id: userId, role_name: req.body.role_name }
-    const result = await projectService.updateProjectMemberRole(id, roleData, req.user._id)
-    logger.info(`Cập nhật vai trò thành viên ${userId} trong dự án ${id} bởi ${req.user._id}`)
+    const { projectId } = req.params
+    const { change } = req.body
+    const result = await projectService.updateProjectMemberRole(projectId, change)
     return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Cập nhật vai trò thành viên thành công',

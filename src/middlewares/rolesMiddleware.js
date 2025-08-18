@@ -20,11 +20,6 @@ import { projectRolesModel } from '~/models/projectRolesModel'
 //   next()
 // }
 
-/**
- * Kiểm tra quyền trong dự án
- * @param {string} permissionName - Tên quyền cần kiểm tra (ví dụ: change_member_role)
- * @returns {Function} Middleware
- */
 const checkProjectPermission = (permissionName) => {
   return async (req, res, next) => {
     const userId = req.user._id
