@@ -41,10 +41,14 @@ router.get('/:projectId', authMiddleware.isAuthenticated, projectMiddleware.chec
 router.delete('/:projectId/members/:userId', authMiddleware.isAuthenticated, projectMiddleware.checkProjectPermission('can_add_member'), projectController.removeMember)
 
 /**
- * Cập nhật vai trò của thành viên, ở đây, thêm logic owner có thể gán lead cho chính mình, tức là
+ * Cập nhật vai trò của 1 hoặc nhiều thành viên cùng 1 lúc, ở đây, thêm logic owner có thể gán lead cho chính mình
  */
 router.put('/:projectId/members/:userId/role', authMiddleware.isAuthenticated, projectMiddleware.checkProjectPermission('change_member_role'), projectMiddleware.validateUpdateMemberRole, projectController.updateMemberRole)
 
+
+// //Ủy quyền cho owner có thể tùy chỉnh permission theo ý muốn mà không bị giới hạn
+// router.patch('/:projectId/free-mode', authMiddleware.verifyToken, projectMiddleware.checkProjectPermission('toggle_free_mode'), projectMiddleware.checkIsOwner, projectController.toggleFreeMode,
+// )
 /**
  * Lấy danh sách vai trò của dự án
  */

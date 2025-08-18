@@ -4,13 +4,6 @@ import { ApiError } from '~/utils/ApiError'
 import { env } from '~/config/environment'
 import { MESSAGES } from '~/constants/messages'
 
-/**
- * Xác thực JWT token từ header Authorization
- * @param {Object} req - Request chứa header Authorization
- * @param {Object} res - Response trả về
- * @param {Function} next - Middleware tiếp theo
- * @throws {ApiError} Nếu token không hợp lệ hoặc thiếu
- */
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -26,13 +19,6 @@ const verifyToken = (req, res, next) => {
   }
 }
 
-/**
- * Kiểm tra xem người dùng đã xác thực chưa
- * @param {Object} req - Request chứa thông tin người dùng
- * @param {Object} res - Response trả về
- * @param {Function} next - Middleware tiếp theo
- * @throws {ApiError} Nếu không có thông tin người dùng
- */
 const ensureAuthenticated = (req, res, next) => {
   if (!req.user?._id) {
     throw new ApiError(StatusCodes.UNAUTHORIZED, MESSAGES.UNAUTHORIZED)
