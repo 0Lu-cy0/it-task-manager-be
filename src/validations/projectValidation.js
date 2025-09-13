@@ -34,7 +34,6 @@ const PROJECT_COLLECTION_SCHEMA_JOI = BASE_PROJECT_SCHEMA.append({
       'date.greater': MESSAGES.END_DATE_INVALID,
     }),
   created_by: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  team_lead: Joi.string().allow(null).pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE).default(null),
   deputy_lead: Joi.string().allow(null).pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE).default(null),
   members: Joi.array()
     .items(
@@ -107,19 +106,33 @@ const validateAddMember = async (data) => {
 
 const validateUpdateMemberRole = async (data) => {
   const schema = Joi.object({
-    user_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-    role_name: Joi.string().valid('lead', 'member').required().messages({
-      'any.only': MESSAGES.ROLE_ONLY,
-      'any.required': MESSAGES.ROLE_REQUIRED,
-    }),
+    change: Joi.array()
+      .items(
+        Joi.object({
+          user_id: Joi.string().required().pattern(OBJECT_ID_RULE).messages({
+            'string.pattern.base': OBJECT_ID_RULE_MESSAGE,
+            'any.required': 'User ID là bắt buộc',
+          }),
+          project_role_id: Joi.string().required().pattern(OBJECT_ID_RULE).messages({
+            'string.pattern.base': MESSAGES.ROLE_ONLY,
+            'any.required': MESSAGES.ROLE_REQUIRED,
+          }),
+        }),
+      )
+      .min(1)
+      .required()
+      .messages({
+        'array.min': 'Phải cung cấp ít nhất 1 thay đổi vai trò ',
+        'any.required': 'Lỗi ở đây này :)))(Dòng 123 Project validation ấy =)))',
+      }),
   })
-
   try {
     return await schema.validateAsync(data, { abortEarly: false })
   } catch (error) {
     throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, error.message)
   }
 }
+
 
 const validateUpdateRolePermissions = async (data) => {
   // Lấy danh sách tên quyền hợp lệ (chưa bị _destroy)

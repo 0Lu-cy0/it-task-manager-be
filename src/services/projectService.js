@@ -8,6 +8,8 @@ import { MESSAGES } from '~/constants/messages'
 import { defaultRolesModel } from '~/models/defaultRolesModel'
 import { permissionModel } from '~/models/permissionModel'
 import { getPermissionId } from '~/utils/permission'
+import mongoose from 'mongoose'
+import { projectModel } from '~/models/projectModel'
 
 const createNew = async (data) => {
   if (!data.created_by) {
@@ -146,58 +148,99 @@ const removeProjectMember = async (projectId, userId, requesterId) => {
   }
   return await projectRepository.removeMember(projectId, userId)
 }
-
-const updateProjectMemberRole = async (projectId, roleData, requesterId) => {
-  const project = await projectRepository.findOneById(projectId)
-  const requester = project.members.find(m => m.user_id.toString() === requesterId.toString())
-  if (!requester) {
-    throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không phải thành viên của dự án')
-  }
-  const requesterRole = await projectRolesModel.findById(requester.project_role_id).lean()
-  const changeMemberRolePermissionId = await getPermissionId('lead_change_member_role')
-  if (!requesterRole.permissions.includes(changeMemberRolePermissionId)) {
-    throw new ApiError(StatusCodes.FORBIDDEN, MESSAGES.FORBIDDEN)
-  }
-
-  // Xác thực dữ liệu đầu vào
-  const validatedData = await projectValidation.validateUpdateMemberRole(roleData)
-
-  // Kiểm tra xem user_id có trong dự án không
-  const targetMember = project.members.find(m => m.user_id.toString() === roleData.user_id.toString())
-  if (!targetMember) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Thành viên không tồn tại trong dự án')
-  }
-
-  // Tìm vai trò được yêu cầu trong ProjectRoles
-  const newRole = await projectRolesModel.findOne({
-    project_id: projectId,
-    name: roleData.role_name,
-  })
-  if (!newRole) {
-    throw new ApiError(StatusCodes.NOT_FOUND, `Vai trò ${roleData.role_name} không tồn tại trong dự án`)
-  }
-
-  // Nếu gán vai trò lead, kiểm tra và gỡ lead hiện tại
-  if (roleData.role_name === 'lead') {
-    const currentLead = await Promise.resolve(project.members.find(async m => {
-      const role = await projectRolesModel.findById(m.project_role_id).lean()
-      return role.name === 'lead' && m.user_id.toString() !== roleData.user_id.toString()
-    }))
-    if (currentLead) {
-      const memberRole = await projectRolesModel.findOne({
-        project_id: projectId,
-        name: 'member',
-      })
-      if (!memberRole) {
-        throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy vai trò member cho dự án')
-      }
-      // Gỡ vai trò lead, chuyển về member
-      await projectRepository.updateMemberRole(projectId, currentLead.user_id, memberRole._id)
+//Cập nhật role của thành viên trong dự án
+const updateProjectMemberRole = async (projectId, changes) => {
+  const session = await mongoose.startSession()
+  session.startTransaction()
+  try {
+    //Kiểm tra dự án
+    const project = await projectModel.findById(projectId).session(session)
+    if (!project || project._destroy) {
+      throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
     }
-  }
 
-  return await projectRepository.updateMemberRole(projectId, roleData.user_id, newRole._id)
+    // Kiểm tra user hợp lệ, user trong nhóm dữ liệu mà người dùng gửi lên có thuộc project hay không
+    const userIds = changes.map(c => String(c.user_id))
+    const invalidUsers = userIds.filter(
+      userId => !project.members.some(m => String(m.user_id._id) === userId),
+    )
+    if (invalidUsers.length > 0) {
+      throw new ApiError(
+        StatusCodes.NOT_FOUND,
+        `Các thành viên không tồn tại trong dự án: ${invalidUsers.join(', ')}`,
+      )
+    }
+
+    // Kiểm tra role hợp lệ
+    const roleIds = changes.map(c => c.project_role_id)
+
+    const roles = await projectRolesModel.find({
+      project_id: projectId,
+      _id: { $in: roleIds },
+    }).lean()
+    const roleMap = new Map(roles.map(r => [String(r._id), r]))
+    const invalidRoles = roleIds.filter(id => !roleMap.has(String(id)))
+    if (invalidRoles.length > 0) {
+      throw new ApiError(
+        StatusCodes.NOT_FOUND,
+        `Các vai trò không tồn tại: ${invalidRoles.join(', ')}`,
+      )
+    }
+
+    // Tìm role lead trong project
+    const leadRole = roles.find(r => r.name === 'lead')
+    if (!leadRole) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy vai trò lead trong dự án')
+    }
+    // Kiểm tra số lượng lead
+    const leadChanges = changes.filter(c => String(c.project_role_id) === String(leadRole._id))
+    if (leadChanges.length > 1) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Chỉ được phép gán tối đa một lead trong dự án')
+    }
+
+    // Nếu có gán lead mới → hạ lead cũ xuống member
+    if (leadChanges.length === 1) {
+      const [leadRole, memberRole] = await Promise.all([
+        projectRolesModel.findOne({ project_id: projectId, name: 'lead' }).lean(),
+        projectRolesModel.findOne({ project_id: projectId, name: 'member' }).lean(),
+      ])
+      if (!leadRole || !memberRole) {
+        throw new ApiError(StatusCodes.NOT_FOUND, 'Thiếu role lead/member trong dự án')
+      }
+      const newLeadUserId = String(leadChanges[0].user_id)
+
+      const oldLeads = project.members.filter(
+        m => String(m.project_role_id._id) === String(leadRole._id) &&
+          String(m.user_id._id) !== newLeadUserId,
+      )
+
+      if (oldLeads.length > 0) {
+        await Promise.all(
+          oldLeads.map(oldLead =>
+            projectRepository.updateMemberRole(projectId, String(oldLead.user_id._id), memberRole._id, session),
+          ),
+        )
+      }
+    }
+
+    // Cập nhật role cho từng user trong changes
+    const results = await Promise.all(
+      changes.map(async (c) => {
+        const roleId = roleMap.get(String(c.project_role_id))
+        return projectRepository.updateMemberRole(projectId, c.user_id, roleId._id, session)
+      }),
+    )
+
+    await session.commitTransaction()
+    return results
+  } catch (error) {
+    await session.abortTransaction()
+    throw error
+  } finally {
+    session.endSession()
+  }
 }
+
 
 const getProjectRoles = async (projectId) => {
   const project = await projectRepository.findOneById(projectId)
@@ -244,22 +287,34 @@ const updateProject = async (projectId, updateData) => {
 const toggleFreeMode = async ({ projectId, free_mode, currentUserId }) => {
   await projectValidation.validateToggleFreeMode({ projectId, free_mode })
 
-  // Lấy project và kiểm tra owner
+  // Lấy project
   const project = await projectRepository.findOneById(projectId)
-  if (!project) throw new ApiError(StatusCodes.NOT_FOUND, 'Project không tồn tại')
+  if (!project) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Project không tồn tại')
+  }
 
-  // Kiểm tra currentUser là owner
-  const member = project.members.find(m => m.user_id.toString() === currentUserId.toString())
-  if (!member) throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc project này')
+  // Helper: chuẩn hóa userId từ member
+  const normalizeId = (id) =>
+    typeof id === 'object' && id?._id ? id._id.toString() : id.toString()
 
-  // Lấy role owner của project
-  const ownerRole = await projectRolesModel.findOne({ _id: member.project_role_id, name: 'owner', project_id: projectId })
-  if (!ownerRole) throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ owner mới được phép thao tác')
+  // Tìm currentUser trong members
+  const member = project.members.find(
+    (m) => normalizeId(m.user_id) === currentUserId.toString(),
+  )
+  if (!member) {
+    throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc project này')
+  }
 
-  // Cập nhật free_mode
-  const updatedProject = await projectRepository.updateFreeMode(projectId, free_mode)
-  return updatedProject
+  // Check quyền owner
+  const isOwner = member.project_role_id?.name === 'owner'
+  if (!isOwner) {
+    throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ owner mới được phép thao tác')
+  }
+
+  // Update free_mode
+  return await projectRepository.updateFreeMode(projectId, free_mode)
 }
+
 
 export const projectService = {
   createNew,

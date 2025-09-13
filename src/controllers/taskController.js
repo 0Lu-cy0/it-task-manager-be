@@ -4,8 +4,7 @@ import { taskValidation } from '~/validations/taskValidation'
 
 const createTask = async (req, res, next) => {
   try {
-    const validatedData = await taskValidation.validateCreate(req.body)
-    const result = await taskService.createTask({ ...validatedData, created_by: req.user._id })
+    const result = await taskService.createTask({ created_by: req.user._id })
 
     return res.status(StatusCodes.CREATED).json({
       status: 'success',
@@ -67,10 +66,18 @@ const getTasks = async (req, res, next) => {
       project_id: req.query.project_id,
       status: req.query.status,
       priority: req.query.priority,
-      assignee: req.query.assignee,
+      assignees: req.query.assignees,
     }
 
-    const result = await taskService.getTasks(filters)
+    // Lọc các field undefined trong khi gọi service
+    const cleanFilters = {}
+    Object.keys(filters).forEach((key) => {
+      if (filters[key] !== undefined) {
+        cleanFilters[key] = filters[key]
+      }
+    })
+
+    const result = await taskService.getTasks(cleanFilters)
 
     return res.status(StatusCodes.OK).json({
       status: 'success',
