@@ -30,21 +30,15 @@ router.get('/', authMiddleware.isAuthenticated, projectController.getAllProjects
  */
 router.get('/:projectId', authMiddleware.isAuthenticated, projectMiddleware.checkProjectPermission('view_project'), projectController.getById)
 
-// /**
-//  * Thêm thành viên vào dự án
-//  */
-// router.post('/:projectId/members', authMiddleware.isAuthenticated, projectMiddleware.checkProjectPermission('can_add_member'), projectMiddleware.validateAddMember, projectController.addProjectMember)
-
 /**
  * Xóa thành viên khỏi dự án
  */
 router.delete('/:projectId/members/:userId', authMiddleware.isAuthenticated, projectMiddleware.checkProjectPermission('can_add_member'), projectController.removeMember)
 
 /**
- * Cập nhật vai trò của 1 hoặc nhiều thành viên cùng 1 lúc, ở đây, thêm logic owner có thể gán lead cho chính mình
+ * Cập nhật vai trò của 1 hoặc nhiều thành viên cùng 1 lúc
  */
-router.put('/:projectId/members/:userId/role', authMiddleware.isAuthenticated, projectMiddleware.checkProjectPermission('change_member_role'), projectMiddleware.validateUpdateMemberRole, projectController.updateMemberRole)
-
+router.put('/:projectId/roles', authMiddleware.isAuthenticated, projectMiddleware.checkProjectPermission('change_member_role'), projectMiddleware.validateUpdateMemberRole, projectController.updateMemberRole)
 
 // //Ủy quyền cho owner có thể tùy chỉnh permission theo ý muốn mà không bị giới hạn
 // router.patch('/:projectId/free-mode', authMiddleware.verifyToken, projectMiddleware.checkProjectPermission('toggle_free_mode'), projectMiddleware.checkIsOwner, projectController.toggleFreeMode,
@@ -54,9 +48,12 @@ router.put('/:projectId/members/:userId/role', authMiddleware.isAuthenticated, p
  */
 router.get('/:projectId/roles', authMiddleware.isAuthenticated, projectController.getProjectRoles)
 
-/**
- * Lấy thông tin lead của dự án
- */
-router.get('/:projectId/lead', authMiddleware.isAuthenticated, projectController.getProjectLead)
+// /**
+//  * Lấy thông tin lead của dự án
+//  */
+// router.get('/:projectId/lead', authMiddleware.isAuthenticated, projectController.getProjectLead)
+
+router.patch(
+  '/:projectId/free-mode', authMiddleware.isAuthenticated, projectMiddleware.checkIsOwner, projectController.toggleFreeMode)
 
 export const APIs_project = router

@@ -42,6 +42,11 @@ const INVITE_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema({
     ref: 'project_roles',
     required: true, // Vai trò mặc định khi mời, ví dụ: viewer hoặc member
   },
+  expires_at: {
+    type: Date,
+    required: false,
+    index: true,
+  },
 }, { timestamps: true })
 
 // Đảm bảo chỉ có 1 lời mời pending cho 1 email hoặc token trong 1 dự án

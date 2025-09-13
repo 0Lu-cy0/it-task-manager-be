@@ -3,6 +3,8 @@ import { projectService } from '~/services/projectService'
 import { ApiError } from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 import { MESSAGES } from '~/constants/messages'
+import { projectModel } from '~/models/projectModel'
+import { projectRolesModel } from '~/models/projectRolesModel'
 
 const checkProjectPermission = (permissionName) => {
   return async (req, res, next) => {
@@ -64,7 +66,6 @@ const validateAddMember = async (req, res, next) => {
 
 const validateUpdateMemberRole = async (req, res, next) => {
   try {
-    console.log(req.body)
     await projectValidation.validateUpdateMemberRole(req.body)
     next()
   } catch (error) {
@@ -72,27 +73,27 @@ const validateUpdateMemberRole = async (req, res, next) => {
   }
 }
 
-// const checkIsOwner = async (req, res, next) => {
-//   try {
-//     const { projectId } = req.params
-//     const currentUserId = req.user._id
-//     const project = await projectModel.findById(projectId)
-//     if (!project || project._destroy) {
-//       throw new ApiError(StatusCodes.NOT_FOUND, 'Project không tồn tại')
-//     }
-//     const member = project.members.find((m) => m.user_id.toString() === currentUserId.toString())
-//     if (!member) throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc project này')
-//     const ownerRole = await projectRolesModel.findOne({
-//       _id: member.project_role_id,
-//       name: 'owner',
-//       project_id: projectId,
-//     })
-//     if (!ownerRole) throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ owner mới được phép thao tác')
-//     next()
-//   } catch (error) {
-//     next(error)
-//   }
-// }
+const checkIsOwner = async (req, res, next) => {
+  try {
+    const { projectId } = req.params
+    const currentUserId = req.user._id
+    const project = await projectModel.findById(projectId)
+    if (!project || project._destroy) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Project không tồn tại')
+    }
+    const member = project.members.find((m) => m.user_id.toString() === currentUserId.toString())
+    if (!member) throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc project này')
+    const ownerRole = await projectRolesModel.findOne({
+      _id: member.project_role_id,
+      name: 'owner',
+      project_id: projectId,
+    })
+    if (!ownerRole) throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ owner mới được phép thao tác')
+    next()
+  } catch (error) {
+    next(error)
+  }
+}
 
 export const projectMiddleware = {
   checkProjectPermission,
@@ -100,5 +101,5 @@ export const projectMiddleware = {
   validateUpdate,
   validateAddMember,
   validateUpdateMemberRole,
-  // checkIsOwner,
+  checkIsOwner,
 }

@@ -26,13 +26,14 @@ export const inviteService = {
     }
 
     const inviteToken = email ? null : crypto.randomBytes(32).toString('hex')
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     const existingInvite = await inviteRepository.findInviteByToken(inviteToken) ||
       (email && await inviteRepository.findInviteById(null, projectId, email))
     if (existingInvite) {
       throw new ApiError(StatusCodes.BAD_REQUEST, 'Lời mời đã tồn tại')
     }
 
-    const invite = await inviteRepository.createInvite(projectId, userId, email, role._id, inviteToken)
+    const invite = await inviteRepository.createInvite(projectId, userId, email, role._id, inviteToken, expiresAt)
 
     await notificationModel.create({
       project_id: projectId,
@@ -41,6 +42,7 @@ export const inviteService = {
       title: 'Lời mời mới được tạo',
       content: `Người dùng ${email || 'qua link mời'} được mời vào dự án "${project.name}" với vai trò ${roleName}`,
       related_id: invite._id,
+      expiresAt: `Hết hạn lúc: ${expiresAt}`,
     })
 
     return {
@@ -50,6 +52,7 @@ export const inviteService = {
       invite_link: inviteToken ? `${env.CLIENT_URL}/api/invites/${inviteToken}` : null,
       status: invite.status,
       role_id: invite.role_id,
+      expires_at: invite.expires_at,
     }
   },
 

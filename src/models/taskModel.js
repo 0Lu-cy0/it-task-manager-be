@@ -33,7 +33,4 @@ const TASK_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema({
   _destroy: { type: Boolean, default: false },
 }, { timestamps: true })
 
-export const taskModel = mongoose.model(
-  TASK_COLLECTION_NAME,
-  TASK_COLLECTION_SCHEMA_MONGOOSE,
-)
+export const taskModel = mongoose.model(TASK_COLLECTION_NAME, TASK_COLLECTION_SCHEMA_MONGOOSE)

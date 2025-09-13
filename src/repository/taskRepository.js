@@ -1,12 +1,12 @@
-import { TaskModel } from '~/models/taskModel'
+import { taskModel } from '~/models/taskModel'
 
 const createTask = async (taskData) => {
-  const task = new TaskModel(taskData)
+  const task = new taskModel(taskData)
   return task.save()
 }
 
 const updateTask = async (taskId, updateData) => {
-  const task = await TaskModel.findByIdAndUpdate(
+  const task = await taskModel.findByIdAndUpdate(
     taskId,
     { ...updateData, updated_at: Date.now() },
     { new: true },
@@ -15,7 +15,7 @@ const updateTask = async (taskId, updateData) => {
 }
 
 const deleteTask = async (taskId) => {
-  const task = await TaskModel.findByIdAndUpdate(
+  const task = await taskModel.findByIdAndUpdate(
     taskId,
     { _destroy: true, updated_at: Date.now() },
     { new: true },
@@ -24,20 +24,20 @@ const deleteTask = async (taskId) => {
 }
 
 const getTaskById = async (taskId) => {
-  return TaskModel.findById(taskId)
+  return taskModel.findById(taskId)
     .populate('assignees.user_id', 'username full_name avatar_url')
     .populate('created_by', 'username full_name')
 }
 
 const findTasks = async (query = {}) => {
-  return TaskModel.find({ _destroy: false, ...query })
+  return taskModel.find({ _destroy: false, ...query })
     .populate('assignees.user_id', 'username full_name avatar_url')
     .populate('created_by', 'username full_name')
     .sort({ created_at: -1 })
 }
 
 const assignTask = async (taskId, assigneeData) => {
-  const task = await TaskModel.findByIdAndUpdate(
+  const task = await taskModel.findByIdAndUpdate(
     taskId,
     {
       $push: { assignees: assigneeData },
@@ -59,7 +59,7 @@ const updateTaskStatus = async (taskId, status) => {
     updateData.completed_at = Date.now()
   }
 
-  const task = await TaskModel.findByIdAndUpdate(
+  const task = await taskModel.findByIdAndUpdate(
     taskId,
     updateData,
     { new: true },
