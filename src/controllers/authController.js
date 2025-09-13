@@ -4,10 +4,6 @@ import { authValidation } from '~/validations/authValidation'
 
 /**
  * Đăng ký người dùng mới
- * @param {Object} req - Yêu cầu từ client
- * @param {Object} res - Phản hồi tới client
- * @param {Function} next - Middleware tiếp theo
- * @returns {Object} Thông tin người dùng đã đăng ký
  */
 const register = async (req, res, next) => {
   try {
@@ -21,10 +17,6 @@ const register = async (req, res, next) => {
 
 /**
  * Đăng nhập người dùng
- * @param {Object} req - Yêu cầu từ client
- * @param {Object} res - Phản hồi tới client
- * @param {Function} next - Middleware tiếp theo
- * @returns {Object} Thông tin người dùng và token
  */
 const login = async (req, res, next) => {
   try {
@@ -38,10 +30,6 @@ const login = async (req, res, next) => {
 
 /**
  * Lấy thông tin người dùng
- * @param {Object} req - Yêu cầu từ client
- * @param {Object} res - Phản hồi tới client
- * @param {Function} next - Middleware tiếp theo
- * @returns {Object} Thông tin người dùng
  */
 const getUser = async (req, res, next) => {
   try {
@@ -54,10 +42,6 @@ const getUser = async (req, res, next) => {
 
 /**
  * Cập nhật hồ sơ người dùng
- * @param {Object} req - Yêu cầu từ client
- * @param {Object} res - Phản hồi tới client
- * @param {Function} next - Middleware tiếp theo
- * @returns {Object} Thông tin người dùng đã cập nhật
  */
 const updateProfile = async (req, res, next) => {
   try {
@@ -71,10 +55,6 @@ const updateProfile = async (req, res, next) => {
 
 /**
  * Đổi mật khẩu
- * @param {Object} req - Yêu cầu từ client
- * @param {Object} res - Phản hồi tới client
- * @param {Function} next - Middleware tiếp theo
- * @returns {void}
  */
 const changePassword = async (req, res, next) => {
   try {
@@ -88,10 +68,6 @@ const changePassword = async (req, res, next) => {
 
 /**
  * Yêu cầu đặt lại mật khẩu
- * @param {Object} req - Yêu cầu từ client
- * @param {Object} res - Phản hồi tới client
- * @param {Function} next - Middleware tiếp theo
- * @returns {Object} Thông báo và resetToken (chỉ trong môi trường dev)
  */
 const requestResetPassword = async (req, res, next) => {
   try {
@@ -105,10 +81,6 @@ const requestResetPassword = async (req, res, next) => {
 
 /**
  * Xác nhận đặt lại mật khẩu
- * @param {Object} req - Yêu cầu từ client
- * @param {Object} res - Phản hồi tới client
- * @param {Function} next - Middleware tiếp theo
- * @returns {void}
  */
 const confirmResetPassword = async (req, res, next) => {
   try {

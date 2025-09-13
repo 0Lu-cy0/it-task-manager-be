@@ -5,15 +5,24 @@ import { projectService } from '~/services/projectService'
 
 const checkProjectPermission = (permission) => {
   return async (req, res, next) => {
-    const userId = req.user._id
-    const projectId = req.params.projectId
-    const hasPermission = await projectService.verifyProjectPermission(projectId, userId, permission)
-    if (!hasPermission) {
-      return next(new ApiError(StatusCodes.FORBIDDEN, 'Không có quyền thực hiện hành động này'))
+    try {
+      const userId = req.user._id
+      const projectId = req.params.projectId
+
+      const hasPermission = await projectService.verifyProjectPermission(projectId, userId, permission)
+      console.log('✅ [checkProjectPermission] hasPermission:', hasPermission)
+
+      if (!hasPermission) {
+        return next(new ApiError(StatusCodes.FORBIDDEN, 'Không có quyền thực hiện hành động này'))
+      }
+
+      next()
+    } catch (error) {
+      next(error) // đẩy lỗi sang error middleware toàn cục
     }
-    next()
   }
 }
+
 
 const validateAddPermission = async (req, res, next) => {
   try {

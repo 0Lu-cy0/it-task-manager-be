@@ -11,8 +11,15 @@ const createUser = async (data) => {
  * Finds a user by email
  */
 const findUserByEmail = async (email) => {
-  return await authModel.findOne({ email, _destroy: false }).lean().exec()
+  try {
+    const user = await authModel.findOne({ email, _destroy: false }).lean().exec()
+    return user
+  } catch (err) {
+    console.error('❌ Error in findUserByEmail:', err)
+    throw err // để service/controller bắt tiếp
+  }
 }
+
 
 /**
  * Finds a user by ID
