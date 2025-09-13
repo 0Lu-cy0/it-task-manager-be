@@ -5,22 +5,30 @@ import { projectService } from '~/services/projectService'
 
 const checkProjectPermission = (permission) => {
   return async (req, res, next) => {
-    const userId = req.user._id
-    const projectId = req.params.projectId
-    const hasPermission = await projectService.verifyProjectPermission(projectId, userId, permission)
-    if (!hasPermission) {
-      return next(new ApiError(StatusCodes.FORBIDDEN, 'Không có quyền thực hiện hành động này'))
+    try {
+      const userId = req.user._id
+      const projectId = req.params.projectId
+
+      const hasPermission = await projectService.verifyProjectPermission(projectId, userId, permission)
+      console.log('✅ [checkProjectPermission] hasPermission:', hasPermission)
+
+      if (!hasPermission) {
+        return next(new ApiError(StatusCodes.FORBIDDEN, 'Không có quyền thực hiện hành động này'))
+      }
+
+      next()
+    } catch (error) {
+      next(error) // đẩy lỗi sang error middleware toàn cục
     }
-    next()
   }
 }
+
 
 const validateAddPermission = async (req, res, next) => {
   try {
     await projectRoleValidation.validateAddPermission(req.body)
     next()
   } catch (error) {
-    console.error('Validation error in validateAddPermission:', error.message)
     next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, error.message))
   }
 }
@@ -30,7 +38,6 @@ const validateRemovePermission = async (req, res, next) => {
     await projectRoleValidation.validateRemovePermission(req.params)
     next()
   } catch (error) {
-    console.error('Validation error in validateRemovePermission:', error.message)
     next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, error.message))
   }
 }
@@ -40,7 +47,6 @@ const validateGetPermissions = async (req, res, next) => {
     await projectRoleValidation.validateGetPermissions(req.params)
     next()
   } catch (error) {
-    console.error('Validation error in validateGetPermissionsaaaa:', error.message)
     next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, error.message))
   }
 }
@@ -50,7 +56,6 @@ const validateUpdate = async (req, res, next) => {
     await projectRoleValidation.validateUpdate(req.body)
     next()
   } catch (error) {
-    console.error('Validation error in validateUpdate:', error.message)
     next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, error.message))
   }
 }

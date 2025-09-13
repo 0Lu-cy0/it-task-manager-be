@@ -7,6 +7,7 @@ import { CLOSE_DB, CONNECT_DB } from '~/config/mongodb'
 import { env } from '~/config/environment'
 import { APIs_home } from './routes/home'
 import { APIs_auth } from './routes/auth'
+import { swaggerDocs } from '~/config/swagger'
 import { errorHandlingMiddleware } from './middlewares/errorHandlingMiddleware'
 
 const START_SERVER = () => {
@@ -17,8 +18,12 @@ const START_SERVER = () => {
   //Enable req.body json data
   app.use(express.json())
 
+  //Route
   app.use('/', APIs_auth)
   app.use('/home', APIs_home)
+
+  // Swagger Docs
+  swaggerDocs(app)
 
   //Middleware xử lý lỗi tập trung
   app.use(errorHandlingMiddleware)

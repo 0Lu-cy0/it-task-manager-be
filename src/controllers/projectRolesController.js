@@ -7,7 +7,6 @@ export const projectRoleController = {
       const { roleId } = req.params
       const { permissionId } = req.body
       const currentUserId = req.user._id
-      console.log(`Đang thêm permission: ${permissionId} vào role ${roleId} bởi người dùng ${currentUserId}`)
 
       const updatedRole = await projectRoleService.addPermissionToRole(roleId, permissionId, currentUserId)
       res.status(StatusCodes.OK).json({
@@ -23,7 +22,6 @@ export const projectRoleController = {
     try {
       const { roleId, permissionId } = req.params
       const currentUserId = req.user._id
-      console.log(`Đang xóa permission ${permissionId} vào roleId: ${roleId} bởi người dùng: ${currentUserId}`)
       const updatedRole = await projectRoleService.removePermissionFromRole(roleId, permissionId, currentUserId)
       res.status(StatusCodes.OK).json({
         message: 'Permission đã được xóa khỏi role',

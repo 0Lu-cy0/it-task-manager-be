@@ -43,3 +43,27 @@
 {"level":"error","message":"Lỗi khi lấy dự án undefined: Dự án không tồn tại hoặc đã bị xóa"}
 {"level":"error","message":"Lỗi khi lấy dự án undefined: Dự án không tồn tại hoặc đã bị xóa"}
 {"level":"error","message":"Lỗi khi lấy dự án undefined: Dự án không tồn tại hoặc đã bị xóa"}
+{"level":"error","message":"Lỗi khi cập nhật vai trò thành viên 68907854757826fb61667024 trong dự án undefined: Các thành viên không tồn tại trong dự án: 68907854757826fb61667024"}
+{"level":"error","message":"Lỗi khi cập nhật vai trò thành viên 68907854757826fb61667024 trong dự án undefined: Các thành viên không tồn tại trong dự án: 68907854757826fb61667024"}
+{"level":"error","message":"Lỗi khi cập nhật vai trò thành viên 68907854757826fb61667024 trong dự án undefined: Các thành viên không tồn tại trong dự án: 68907854757826fb61667024"}
+{"level":"error","message":"Lỗi khi cập nhật vai trò thành viên 68907854757826fb61667024 trong dự án undefined: Các thành viên không tồn tại trong dự án: 68907854757826fb61667024"}
+{"level":"error","message":"Lỗi khi cập nhật vai trò thành viên 68907854757826fb61667024 trong dự án undefined: Các vai trò không tồn tại: "}
+{"level":"error","message":"Lỗi khi cập nhật vai trò thành viên 68907854757826fb61667024 trong dự án undefined: Các vai trò không tồn tại: 688f707517d1857885e36136"}
+{"level":"error","message":"Lỗi khi cập nhật vai trò thành viên 68907854757826fb61667024 trong dự án undefined: Các vai trò không tồn tại: 688f707517d1857885e36136"}
+{"level":"error","message":"Lỗi khi cập nhật vai trò thành viên 68907854757826fb61667024 trong dự án undefined: _projectRepository.projectRepository.findOneById(...).session is not a function"}
+{"level":"error","message":"Lỗi khi cập nhật vai trò thành viên 68907854757826fb61667024 trong dự án undefined: _projectModel.projectModel.findOneById is not a function"}
+{"level":"error","message":"Lỗi khi cập nhật vai trò thành viên undefined trong dự án undefined: Một user_id chỉ được phép xuất hiện một lần trong mảng members"}
+{"level":"error","message":"Lỗi khi cập nhật vai trò thành viên undefined trong dự án undefined: Một user_id chỉ được phép xuất hiện một lần trong mảng members"}
+{"level":"error","message":"Lỗi khi cập nhật vai trò thành viên undefined trong dự án undefined: Một user_id chỉ được phép xuất hiện một lần trong mảng members, lỗi dòng 90"}
+{"level":"error","message":"Lỗi khi cập nhật vai trò thành viên undefined trong dự án undefined: Một user_id chỉ được phép xuất hiện một lần trong mảng members(Dòng 102)"}
+{"level":"error","message":"Lỗi khi cập nhật vai trò thành viên undefined trong dự án undefined: Một user_id chỉ được phép xuất hiện một lần trong mảng members (Dòng 102)"}
+{"level":"error","message":"Lỗi khi cập nhật vai trò thành viên undefined trong dự án undefined: Một user_id chỉ được phép xuất hiện một lần trong mảng members (Dòng 102)"}
+{"level":"error","message":"Lỗi khi cập nhật vai trò thành viên undefined trong dự án undefined: Một user_id chỉ được phép xuất hiện một lần trong mảng members (Dòng 102)"}
+{"level":"error","message":"Lỗi khi cập nhật vai trò thành viên undefined trong dự án undefined: Một user_id chỉ được phép xuất hiện một lần trong mảng members (Dòng 102)"}
+{"level":"error","message":"Lỗi khi cập nhật vai trò thành viên undefined trong dự án undefined: Cannot populate path `team_lead` because it is not in your schema. Set the `strictPopulate` option to false to override."}
+{"level":"error","message":"Lỗi khi cập nhật vai trò thành viên undefined trong dự án undefined: Cannot populate path `lead` because it is not in your schema. Set the `strictPopulate` option to false to override."}
+{"level":"error","message":"Lỗi khi cập nhật vai trò thành viên undefined trong dự án undefined: Cannot populate path `lead` because it is not in your schema. Set the `strictPopulate` option to false to override."}
+{"level":"error","message":"Lỗi khi cập nhật vai trò thành viên undefined trong dự án undefined: Cannot populate path `team_lead` because it is not in your schema. Set the `strictPopulate` option to false to override."}
+{"level":"error","message":"Lỗi khi tạo dự án: Cannot populate path `email` because it is not in your schema. Set the `strictPopulate` option to false to override."}
+{"level":"error","message":"Lỗi khi tạo dự án: Cannot populate path `email` because it is not in your schema. Set the `strictPopulate` option to false to override."}
+{"level":"info","message":"Dự án mới được tạo bởi 64f7b1c8e29b41d4a7164001: 68bec845401d1da031900157"}

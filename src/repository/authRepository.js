@@ -2,8 +2,6 @@ import { authModel } from '~/models/authModel'
 
 /**
  * Creates a new user in the database
- * @param {Object} data - User data (e.g., email, password, full_name)
- * @returns {Object} Created user
  */
 const createUser = async (data) => {
   return await authModel.create(data)
@@ -11,17 +9,20 @@ const createUser = async (data) => {
 
 /**
  * Finds a user by email
- * @param {string} email - User's email
- * @returns {Object|null} User if found, null otherwise
  */
 const findUserByEmail = async (email) => {
-  return await authModel.findOne({ email, _destroy: false }).lean().exec()
+  try {
+    const user = await authModel.findOne({ email, _destroy: false }).lean().exec()
+    return user
+  } catch (err) {
+    console.error('❌ Error in findUserByEmail:', err)
+    throw err // để service/controller bắt tiếp
+  }
 }
+
 
 /**
  * Finds a user by ID
- * @param {string} id - User's ID
- * @returns {Object|null} User if found, null otherwise
  */
 const findUserById = async (id) => {
   return await authModel.findOne({ _id: id, _destroy: false }).lean().exec()
@@ -29,9 +30,6 @@ const findUserById = async (id) => {
 
 /**
  * Updates a user by ID
- * @param {string} id - User's ID
- * @param {Object} data - Data to update
- * @returns {Object|null} Updated user
  */
 const updateUserById = async (id, data) => {
   return await authModel
@@ -43,8 +41,6 @@ const updateUserById = async (id, data) => {
 
 /**
  * Finds a user by reset token
- * @param {string} resetToken - Reset token
- * @returns {Object|null} User if found, null otherwise
  */
 const findUserByResetToken = async (resetToken) => {
   return await authModel

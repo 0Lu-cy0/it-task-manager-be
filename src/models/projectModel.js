@@ -20,7 +20,6 @@ const PROJECT_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema({
     },
   },
   created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true, index: true },
-  team_lead: { type: mongoose.Schema.Types.ObjectId, ref: 'users', default: null },
   members: {
     type: [
       {
@@ -31,39 +30,124 @@ const PROJECT_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema({
       },
     ],
     default: [],
-    validate: [
-      // Validator 1: Chặn trùng (user_id + role)
-      {
-        validator: function (members) {
-          const combos = members.map(m => `${m.user_id.toString()}_${m.project_role_id.toString()}`)
-          return new Set(combos).size === combos.length
-        },
-        message: 'Không được phép có user_id với cùng project_role_id trùng lặp',
-      },
-      // Validator 2: Tối đa 1 lead
-      {
-        validator: async function (members) {
-          const leadRoleIds = (
-            await projectRolesModel.find({ project_id: this._id, name: 'lead' })
-          ).map(role => role._id.toString())
-          const leadCount = members.filter(member => leadRoleIds.includes(member.project_role_id.toString())).length
-          return leadCount <= 1
-        },
-        message: 'Chỉ được phép có tối đa một lead trong dự án',
-      },
-    ],
   },
-
   member_count: { type: Number, default: 0 },
   _destroy: { type: Boolean, default: false },
   free_mode: { type: Boolean, default: false },
 }, { timestamps: true })
 
-// Virtual: Liên kết Project với Task
+/**
+ * Middleware validate: check members
+ * - Không cho user_id trùng lặp
+ * - Chỉ cho phép tối đa 1 lead
+ */
+PROJECT_COLLECTION_SCHEMA_MONGOOSE.pre('validate', async function (next) {
+  if (!this.members || this.members.length === 0) return next()
+
+  // 1. Check duplicate user_id
+  const userIds = this.members.map(m => m.user_id.toString())
+  const uniqueUserIds = new Set(userIds)
+  if (uniqueUserIds.size !== userIds.length) {
+    return next(new Error('Một user_id chỉ được phép xuất hiện một lần trong mảng members'))
+  }
+
+  // 2. Check lead count
+  const leadRoleIds = (await projectRolesModel.find({ project_id: this._id, name: 'lead' }))
+    .map(role => role._id.toString())
+  const leadCount = this.members.filter(m => leadRoleIds.includes(m.project_role_id.toString())).length
+  if (leadCount > 1) {
+    return next(new Error('Chỉ được phép có tối đa một lead trong dự án'))
+  }
+
+  next()
+})
+
+/**
+ * Middleware save: đồng bộ member_count
+ */
+PROJECT_COLLECTION_SCHEMA_MONGOOSE.pre('save', function (next) {
+  const uniqueUserIds = new Set(this.members.map(m => m.user_id.toString()))
+  this.member_count = uniqueUserIds.size
+  next()
+})
+
+/**
+ * Middleware update: check khi thêm/cập nhật members
+ */
+PROJECT_COLLECTION_SCHEMA_MONGOOSE.pre('findOneAndUpdate', async function (next) {
+  const update = this.getUpdate()
+  console.log('🟡 [findOneAndUpdate] update object:', JSON.stringify(update, null, 2))
+  if (!update) return next()
+
+  const project = await this.model.findById(this.getQuery()._id)
+  if (!project) return next()
+
+  let newMembers = []
+
+  // Case 1: $push
+  if (update.$push && update.$push.members) {
+    newMembers = Array.isArray(update.$push.members) ? update.$push.members : [update.$push.members]
+  }
+
+  // Case 2: $set
+  if (update.$set && update.$set.members) {
+    newMembers = Array.isArray(update.$set.members) ? update.$set.members : [update.$set.members]
+  }
+
+  console.log('🟡 [findOneAndUpdate] newMembers:', JSON.stringify(newMembers, null, 2))
+
+  if (newMembers.length > 0) {
+    const newUserIds = newMembers.map(m => m.user_id.toString())
+    const existingUserIds = project.members.map(m => m.user_id.toString())
+    console.log('=== Debug members trước khi validate ===')
+    console.log(project.members)
+    console.log('Số lượng:', project.members.length)
+    console.log('Số lượng unique:', new Set(project.members.map(m => m.user_id.toString())).size)
+
+
+    console.log('🟡 [findOneAndUpdate] newUserIds:', newUserIds)
+    console.log('🟡 [findOneAndUpdate] existingUserIds:', existingUserIds)
+
+    // Kiểm tra user_id trùng
+    if (newUserIds.some(id => existingUserIds.includes(id))) {
+      console.error('❌ Duplicate user_id detected!')
+      console.error('  ProjectId:', project._id.toString())
+      console.error('  Existing members:', existingUserIds)
+      console.error('  New members:', newUserIds)
+      return next(new Error('Một user_id chỉ được phép xuất hiện một lần trong mảng members (Dòng 102)'))
+    }
+
+    // Kiểm tra số lead
+    const leadRoleIds = (await projectRolesModel.find({ project_id: project._id, name: 'lead' }))
+      .map(role => role._id.toString())
+    const currentLeads = project.members.filter(m => leadRoleIds.includes(m.project_role_id.toString())).length
+    const newLeads = newMembers.filter(m => leadRoleIds.includes(m.project_role_id.toString())).length
+
+    console.log('🟡 [findOneAndUpdate] leadRoleIds:', leadRoleIds)
+    console.log('🟡 [findOneAndUpdate] currentLeads:', currentLeads)
+    console.log('🟡 [findOneAndUpdate] newLeads:', newLeads)
+
+    if (currentLeads + newLeads > 1) {
+      console.error('❌ Too many leads detected!')
+      console.error('  ProjectId:', project._id.toString())
+      console.error('  Lead roleIds:', leadRoleIds)
+      console.error('  Current lead count:', currentLeads)
+      console.error('  New lead count:', newLeads)
+      return next(new Error('Chỉ được phép có tối đa một lead trong dự án'))
+    }
+  }
+
+  next()
+})
+
+
+/**
+ * Virtual populate tasks
+ */
 PROJECT_COLLECTION_SCHEMA_MONGOOSE.virtual('tasks', {
-  ref: 'tasks', // Tên model Task
-  localField: '_id', // Trường ở Project
-  foreignField: 'projectId', // Trường ở Task liên kết Project
+  ref: 'tasks',
+  localField: '_id',
+  foreignField: 'projectId',
 })
 
 // Bật virtual khi convert sang JSON hoặc Object

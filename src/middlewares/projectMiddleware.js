@@ -1,10 +1,10 @@
 import { projectValidation } from '~/validations/projectValidation'
 import { projectService } from '~/services/projectService'
-import { projectRolesModel } from '~/models/projectRolesModel'
-import { projectModel } from '~/models/projectModel'
 import { ApiError } from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 import { MESSAGES } from '~/constants/messages'
+import { projectModel } from '~/models/projectModel'
+import { projectRolesModel } from '~/models/projectRolesModel'
 
 const checkProjectPermission = (permissionName) => {
   return async (req, res, next) => {
@@ -66,7 +66,6 @@ const validateAddMember = async (req, res, next) => {
 
 const validateUpdateMemberRole = async (req, res, next) => {
   try {
-    console.log(req.body)
     await projectValidation.validateUpdateMemberRole(req.body)
     next()
   } catch (error) {

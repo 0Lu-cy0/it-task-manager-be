@@ -25,7 +25,6 @@ const findOneById = async (id) => {
   const project = await projectModel
     .findById(id)
     .populate('created_by', 'name email')
-    .populate('team_lead', 'name email')
     .populate('members.user_id', 'name email')
     .populate('members.project_role_id', 'name')
     .populate({
@@ -58,12 +57,10 @@ const getAll = async (filter = { _destroy: false }, sort = { created_at: -1 }, o
     .sort(sort)
     .setOptions(options)
     .select('-start_date -created_by -deputy_lead -created_at -updated_at -__v')
-    .populate('team_lead', 'full_name')
     .lean()
     .exec()
   return projects
 }
-
 
 /**
  * Cập nhật thông tin dự án
@@ -80,7 +77,6 @@ const update = async (projectId, updateData) => {
   return await projectModel
     .findByIdAndUpdate(projectId, updateData, { new: true })
     .populate('created_by', 'name email')
-    .populate('team_lead', 'name email')
     .populate('members.user_id', 'name email')
     .populate('members.project_role_id', 'name')
     .exec()
@@ -104,7 +100,6 @@ const addMember = async (projectId, memberData) => {
 
   return await savedProject.populate([
     { path: 'created_by', select: 'name email' },
-    { path: 'team_lead', select: 'name email' },
     { path: 'members.user_id', select: 'name email' },
     { path: 'members.project_role_id', select: 'name' },
   ])
@@ -129,66 +124,116 @@ const removeMember = async (projectId, userId) => {
     .then(doc =>
       doc
         .populate('created_by', 'name email')
-        .populate('team_lead', 'name email')
         .populate('members.user_id', 'name email')
         .populate('members.project_role_id', 'name')
         .execPopulate(),
     )
 }
 
-const updateMemberRole = async (projectId, userId, projectRoleId) => {
-  const project = await projectModel.findById(projectId)
+/**
+ * Cập nhật vai trò của thành viên trong dự án
+ * @param {string} projectId - ID của dự án
+ * @param {string} userId - ID của thành viên
+ * @param {string} projectRoleId - ID của vai trò mới
+ * @param {Object} [session=null] - Session cho transaction (nếu có)
+ * @returns {Object} Dự án đã được cập nhật
+ * @throws {ApiError} Nếu dự án hoặc thành viên không tồn tại
+ */
+const updateMemberRole = async (projectId, userId, projectRoleId, session = null) => {
+  const project = await projectModel.findById(projectId).session(session)
   if (!project || project._destroy) {
     throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
   }
+
+  // Update role cho user trong members
   const updatedProject = await projectModel
     .findOneAndUpdate(
       { _id: projectId, 'members.user_id': userId },
       { $set: { 'members.$.project_role_id': projectRoleId } },
-      { new: true },
+      { new: true, session },
     )
     .populate('created_by', 'name email')
-    .populate('team_lead', 'name email')
     .populate('members.user_id', 'name email')
     .populate('members.project_role_id', 'name')
     .exec()
+
   if (!updatedProject) {
     throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.USER_NOT_MEMBER)
   }
+
   return updatedProject
 }
 
+/**
+ * Kiểm tra quyền của user trong dự án
+ * @param {string} projectId - ID của dự án
+ * @param {string} userId - ID của user
+ * @param {string} permissionName - Tên quyền cần kiểm tra
+ * @returns {boolean} Kết quả kiểm tra quyền
+ * @throws {ApiError} Nếu dự án không tồn tại hoặc free_mode tắt khi chỉnh sửa permission
+ */
 const checkUserPermission = async (projectId, userId, permissionName) => {
-  // 1️⃣ Tìm project chứa user này
-  const project = await projectModel.findOne({
-    _id: projectId,
-    'members.user_id': userId,
-  }).lean()
-  if (!project) {
-    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
+  try {
+
+    // 1️⃣ Tìm project chứa user này
+    const project = await projectModel.findOne({
+      _id: projectId,
+      'members.user_id': userId,
+    }).lean()
+
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
+    }
+
+    // 2️⃣ Nếu project đang tắt free_mode thì chặn luôn việc chỉnh sửa permission
+    if (
+      !project.free_mode && permissionName === 'change_member_role') {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        'Không thể thực hiện hành động này vì chế độ free_mode đang bị tắt',
+      )
+    }
+
+    // 3️⃣ Lấy tất cả roles của user trong project
+    const memberRoles = project.members
+      .filter((m) => m.user_id.toString() === userId.toString())
+      .map((m) => m.project_role_id)
+
+    if (memberRoles.length === 0) {
+      return false
+    }
+
+    // 4️⃣ Nếu free_mode bật thì owner được bypass
+    if (project.free_mode) {
+      const ownerRole = await projectRolesModel.findOne(
+        {
+          _id: { $in: memberRoles },
+          name: 'owner',
+        },
+        { _id: 1 },
+      ).lean()
+      console.log('🟡 [checkUserPermission] Owner role found (bypass):', !!ownerRole)
+      if (ownerRole) return true
+    }
+
+    // 5️⃣ Check permission bình thường
+    const permissionId = await getPermissionId(permissionName)
+
+    const role = await projectRolesModel.findOne(
+      {
+        _id: { $in: memberRoles },
+        permissions: permissionId,
+      },
+      { _id: 1 },
+    ).lean()
+
+    return !!role
+  } catch (error) {
+    console.error('❌ [checkUserPermission] Error:', error.message)
+    throw error
   }
-
-  // 2️⃣ Lấy tất cả roles của user trong project
-  const memberRoles = project.members
-    .filter(m => m.user_id.toString() === userId.toString())
-    .map(m => m.project_role_id)
-  if (memberRoles.length === 0) return false
-
-  // 3️⃣ Owner không cần permission, luôn bypass
-  const ownerRole = await projectRolesModel.findOne({
-    _id: { $in: memberRoles },
-    name: 'owner',
-  }, { _id: 1 }).lean()
-  if (ownerRole) return true
-
-  // 4️⃣ Check permission bình thường
-  const permissionId = await getPermissionId(permissionName)
-  const role = await projectRolesModel.findOne({
-    _id: { $in: memberRoles },
-    permissions: permissionId,
-  }, { _id: 1 }).lean()
-  return !!role
 }
+
 
 /**
  * Xóa mềm dự án

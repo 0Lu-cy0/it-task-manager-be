@@ -38,6 +38,7 @@ const register = async (data) => {
  */
 const login = async (data) => {
   const { email, password } = data
+
   const user = await authRepository.findUserByEmail(email)
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.USER_NOT_FOUND)
