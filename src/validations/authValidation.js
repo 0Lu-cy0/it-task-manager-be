@@ -253,6 +253,25 @@ const validatePasswordChange = async (data) => {
   }
 }
 
+// Định nghĩa schema bằng Joi
+const refreshTokenSchema = Joi.object({
+  refreshToken: Joi.string().required().messages({
+    'string.base': MESSAGES.INVALID_REFRESH_TOKEN,
+    'any.required': MESSAGES.REFRESH_TOKEN_REQUIRED,
+    'string.empty': MESSAGES.REFRESH_TOKEN_REQUIRED,
+  }),
+})
+
+// Middleware validate bằng Joi
+export const validateRefreshToken = (req, res, next) => {
+  const { error } = refreshTokenSchema.validate(req.body)
+
+  if (error) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, error.details[0].message)
+  }
+  next()
+}
+
 export const authValidation = {
   USER_COLLECTION_SCHEMA_JOI,
   validateBeforeRegister,
@@ -261,4 +280,5 @@ export const authValidation = {
   validatePasswordChange,
   validateResetPasswordRequest,
   validateResetPasswordConfirm,
+  validateRefreshToken,
 }

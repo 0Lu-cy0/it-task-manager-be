@@ -92,12 +92,40 @@ const confirmResetPassword = async (req, res, next) => {
   }
 }
 
+const refreshToken = async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body
+    const result = await authService.refreshToken(refreshToken)
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Làm mới token thành công',
+      data: result,
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+const logout = async (req, res, next) => {
+  try {
+    await authService.logout(req.user._id)
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Đăng xuất thành công',
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
 export const authController = {
   register,
   login,
+  logout,
   getUser,
   updateProfile,
   changePassword,
   requestResetPassword,
   confirmResetPassword,
+  refreshToken,
 }

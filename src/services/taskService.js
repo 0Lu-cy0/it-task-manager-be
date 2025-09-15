@@ -4,6 +4,9 @@ import { APIError } from '~/utils/APIError'
 import { StatusCodes } from 'http-status-codes'
 
 const createTask = async (data) => {
+  if (!data.created_by) {
+    throw new APIError('created_by is required', StatusCodes.BAD_REQUEST)
+  }
   // Check if project exists and user has permission
   const project = await projectService.getProjectById(data.project_id)
   if (!project) {
