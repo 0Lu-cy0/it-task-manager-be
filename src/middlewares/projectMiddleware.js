@@ -39,6 +39,7 @@ const checkProjectPermission = (permissionName) => {
 
 const validateCreate = async (req, res, next) => {
   try {
+    req.body.created_by = req.user._id
     await projectValidation.validateBeforeCreate(req.body)
     next()
   } catch (error) {
