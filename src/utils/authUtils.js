@@ -15,11 +15,15 @@ const hashPassword = async (password) => {
 /**
  * Generates a JWT token
  * @param {Object} payload - Data to include in token
+ * @param {string} secret - Secret key to sign token
+ * @param {string} expiresIn - Token expiration time
  * @returns {string} JWT token
  */
-const generateToken = (payload) => {
-  return jwt.sign(payload, process.env.JWT_SECRET_KEY, { expiresIn: '1d' })
+const generateToken = (payload, secret, expiresIn) => {
+  const token = jwt.sign(payload, secret, { expiresIn })
+  return token
 }
+
 
 /**
  * Sends a password reset email

@@ -32,13 +32,16 @@ export const MESSAGES = {
   PRIORITY_INVALID: 'Độ ưu tiên của dự án phải là một trong [low, medium, high]',
   // Auth-related messages
   LOGIN_SUCCESS: 'Đăng nhập thành công',
+  EXPRIRED_ACCESS_TOKEN: 'Access token hết hạn',
+  INVALID_CREDENTIALS: 'Thông tin đăng nhập không hợp lệ',
+  INVALID_TOKEN: 'Token không hợp lệ',
+  REFRESH_TOKEN_REQUIRED: 'Yêu cầu refresh token',
+  INVALID_REFRESH_TOKEN: 'Refresh token không hợp lệ',
   REGISTER_SUCCESS: 'Đăng ký thành công',
   EMAIL_EXISTS: 'Email đã tồn tại',
-  INVALID_CREDENTIALS: 'Email hoặc mật khẩu không đúng',
   PROFILE_UPDATED: 'Hồ sơ được cập nhật thành công',
   PASSWORD_CHANGED: 'Đổi mật khẩu thành công',
   INVALID_CURRENT_PASSWORD: 'Mật khẩu hiện tại không đúng',
-  INVALID_TOKEN: 'Token không hợp lệ hoặc đã hết hạn',
   EMAIL_REQUIRED: 'Email là bắt buộc',
   EMAIL_INVALID: 'Email không hợp lệ',
   PASSWORD_REQUIRED: 'Mật khẩu là bắt buộc',
@@ -70,5 +73,4 @@ export const MESSAGES = {
   ROLE_ID_REQUIRED: 'Role ID là bắt buộc',
   PERMISSIONS_REQUIRED: 'Danh sách quyền là bắt buộc',
   PERMISSIONS_MAX: 'Danh sách quyền không được vượt quá 50 mục',
-
 }

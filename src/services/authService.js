@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt'
 import { randomBytes } from 'crypto'
+import jwt from 'jsonwebtoken'
 import { authRepository } from '~/repository/authRepository'
 import { ApiError } from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
@@ -8,9 +9,6 @@ import { hashPassword, generateToken, sendResetPasswordEmail } from '~/utils/aut
 
 /**
  * Registers a new user
- * @param {Object} data - Registration data (email, password, full_name)
- * @returns {Object} Created user
- * @throws {ApiError} If email already exists
  */
 const register = async (data) => {
   const { email, password, full_name } = data
@@ -32,32 +30,97 @@ const register = async (data) => {
 
 /**
  * Logs in a user
- * @param {Object} data - Login data (email, password)
- * @returns {Object} User info and JWT token
- * @throws {ApiError} If credentials are invalid
  */
 const login = async (data) => {
   const { email, password } = data
 
-  const user = await authRepository.findUserByEmail(email)
-  if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.USER_NOT_FOUND)
+  try {
+    const user = await authRepository.findUserByEmail(email)
+    if (!user) {
+      throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.USER_NOT_FOUND)
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password)
+    if (!isMatch) {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, MESSAGES.INVALID_CREDENTIALS)
+    }
+
+    // 🔑 Generate Access Token (sống ngắn, vd: 15m)
+    const accessToken = generateToken(
+      { _id: user._id },
+      process.env.JWT_SECRET_KEY,
+      '15m',
+    )
+
+    // 🔑 Generate Refresh Token (sống dài, vd: 7d)
+    const refreshToken = generateToken(
+      { _id: user._id },
+      process.env.JWT_SECRET_KEY_REFRESH,
+      '7d',
+    )
+
+    // 👉 Lưu refresh token vào DB/Redis nếu muốn quản lý phiên
+    await authRepository.saveRefreshToken(user._id, refreshToken)
+
+    return {
+      _id: user._id,
+      email: user.email,
+      accessToken,
+      refreshToken,
+    }
+  } catch (error) {
+    console.error('Login: Error occurred:', error.message, error.stack)
+    throw error
+  }
+}
+
+//Refresh token
+const refreshToken = async (refreshToken) => {
+  // Kiểm tra refresh token trong DB
+  const storedToken = await authRepository.findRefreshToken(refreshToken)
+  if (!storedToken) {
+    throw new ApiError(StatusCodes.UNAUTHORIZED, MESSAGES.INVALID_REFRESH_TOKEN)
   }
 
-  const isMatch = await bcrypt.compare(password, user.password)
-  if (!isMatch) {
-    throw new ApiError(StatusCodes.UNAUTHORIZED, MESSAGES.INVALID_CREDENTIALS)
+  // Xác thực refresh token
+  let decoded
+  try {
+    decoded = jwt.verify(refreshToken, process.env.JWT_SECRET_KEY_REFRESH)
+  } catch (error) {
+    await authRepository.deleteRefreshToken(refreshToken) // Xóa token không hợp lệ
+    throw new ApiError(StatusCodes.UNAUTHORIZED, MESSAGES.INVALID_REFRESH_TOKEN)
   }
 
-  const token = generateToken({ _id: user._id })
-  return { _id: user._id, email: user.email, token }
+  // Tạo access token mới
+  const accessToken = generateToken(
+    { _id: decoded._id },
+    process.env.JWT_SECRET_KEY,
+    '15m',
+  )
+
+  // Optional: Tạo refresh token mới (rotation) để tăng bảo mật
+  const newRefreshToken = generateToken(
+    { _id: decoded._id },
+    process.env.JWT_SECRET_KEY_REFRESH,
+    '7d',
+  )
+
+  // Cập nhật refresh token trong DB
+  await authRepository.updateRefreshToken(refreshToken, newRefreshToken)
+
+  return {
+    accessToken,
+    refreshToken: newRefreshToken,
+  }
+}
+
+// Logout
+const logout = async (userId) => {
+  await authRepository.deleteRefreshTokenByUserId(userId)
 }
 
 /**
  * Gets user information
- * @param {string} userId - User's ID
- * @returns {Object} User info
- * @throws {ApiError} If user not found
  */
 const getUser = async (userId) => {
   const user = await authRepository.findUserById(userId)
@@ -69,10 +132,6 @@ const getUser = async (userId) => {
 
 /**
  * Updates user profile
- * @param {string} userId - User's ID
- * @param {Object} data - Data to update (full_name, avatar_url, phone, department, language)
- * @returns {Object} Updated user info
- * @throws {ApiError} If user not found
  */
 const updateProfile = async (userId, data) => {
   const user = await authRepository.updateUserById(userId, data)
@@ -84,10 +143,6 @@ const updateProfile = async (userId, data) => {
 
 /**
  * Changes user password
- * @param {string} userId - User's ID
- * @param {Object} data - Password data (currentPassword, newPassword)
- * @returns {void}
- * @throws {ApiError} If current password is incorrect or user not found
  */
 const changePassword = async (userId, data) => {
   const { currentPassword, newPassword } = data
@@ -107,9 +162,6 @@ const changePassword = async (userId, data) => {
 
 /**
  * Requests a password reset
- * @param {string} email - User's email
- * @returns {void}
- * @throws {ApiError} If user not found
  */
 const requestResetPassword = async (email) => {
   const user = await authRepository.findUserByEmail(email)
@@ -123,12 +175,7 @@ const requestResetPassword = async (email) => {
   await sendResetPasswordEmail(email, resetToken)
 }
 
-/**
- * Confirms password reset
- * @param {Object} data - Reset data (resetToken, newPassword)
- * @returns {void}
- * @throws {ApiError} If token is invalid or expired
- */
+// Confirm reset password
 const confirmResetPassword = async ({ resetToken, newPassword }) => {
   const user = await authRepository.findUserByResetToken(resetToken)
   if (!user) {
@@ -146,9 +193,11 @@ const confirmResetPassword = async ({ resetToken, newPassword }) => {
 export const authService = {
   register,
   login,
+  logout,
   getUser,
   updateProfile,
   changePassword,
   requestResetPassword,
   confirmResetPassword,
+  refreshToken,
 }

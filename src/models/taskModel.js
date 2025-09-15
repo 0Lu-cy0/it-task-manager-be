@@ -25,11 +25,6 @@ const TASK_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema({
     created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true },
     created_at: { type: Date, default: Date.now },
   }],
-  permissions: {
-    can_edit: [{ type: mongoose.Schema.Types.ObjectId, ref: 'users', default: [] }],
-    can_delete: [{ type: mongoose.Schema.Types.ObjectId, ref: 'users', default: [] }],
-    can_assign: [{ type: mongoose.Schema.Types.ObjectId, ref: 'users', default: [] }],
-  },
   _destroy: { type: Boolean, default: false },
 }, { timestamps: true })
 

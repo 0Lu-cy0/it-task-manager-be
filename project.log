@@ -67,3 +67,5 @@
 {"level":"error","message":"Lỗi khi tạo dự án: Cannot populate path `email` because it is not in your schema. Set the `strictPopulate` option to false to override."}
 {"level":"error","message":"Lỗi khi tạo dự án: Cannot populate path `email` because it is not in your schema. Set the `strictPopulate` option to false to override."}
 {"level":"info","message":"Dự án mới được tạo bởi 64f7b1c8e29b41d4a7164001: 68bec845401d1da031900157"}
+{"level":"info","message":"Dự án mới được tạo bởi 68907854757826fb61667024: 68c7ce08d391ede9370c88c4"}
+{"level":"info","message":"Dự án mới được tạo bởi 68b5c09af20ed9b7c288e599: 68c7ce9cd391ede9370c88dc"}
