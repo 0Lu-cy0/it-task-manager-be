@@ -1,4 +1,5 @@
 import { authModel } from '~/models/authModel'
+import { refreshTokenModel } from '~/models/refreshTokenModel'
 
 /**
  * Creates a new user in the database
@@ -20,6 +21,38 @@ const findUserByEmail = async (email) => {
   }
 }
 
+// Save refresh token
+const saveRefreshToken = async (userId, refreshToken) => {
+  await refreshTokenModel.create({
+    user_id: userId,
+    token: refreshToken,
+    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 ngày
+  })
+}
+
+// Find refresh token
+const findRefreshToken = async (refreshToken) => {
+  return await refreshTokenModel.findOne({ token: refreshToken }).lean()
+}
+
+// Update refresh token
+const updateRefreshToken = async (oldToken, newToken) => {
+  await refreshTokenModel.updateOne(
+    { token: oldToken },
+    {
+      token: newToken,
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
+  )
+}
+
+const deleteRefreshToken = async (refreshToken) => {
+  await refreshTokenModel.deleteOne({ token: refreshToken })
+}
+
+const deleteRefreshTokenByUserId = async (userId) => {
+  await refreshTokenModel.deleteMany({ user_id: userId })
+}
 
 /**
  * Finds a user by ID
@@ -54,4 +87,9 @@ export const authRepository = {
   findUserById,
   updateUserById,
   findUserByResetToken,
+  saveRefreshToken,
+  findRefreshToken,
+  updateRefreshToken,
+  deleteRefreshToken,
+  deleteRefreshTokenByUserId,
 }

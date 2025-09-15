@@ -40,11 +40,6 @@ export const TASK_COLLECTION_SCHEMA_JOI = Joi.object({
       created_at: Joi.date().timestamp().default(Date.now),
     }),
   ).default([]),
-  permissions: Joi.object({
-    can_edit: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
-    can_delete: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
-    can_assign: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
-  }).default({ can_edit: [], can_delete: [], can_assign: [] }),
   created_at: Joi.date().timestamp().default(Date.now),
   updated_at: Joi.date().timestamp().default(Date.now),
   _destroy: Joi.boolean().default(false),
