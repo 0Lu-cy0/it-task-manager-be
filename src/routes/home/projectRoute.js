@@ -53,7 +53,6 @@ router.get('/:projectId/roles', authMiddleware.isAuthenticated, projectControlle
 //  */
 // router.get('/:projectId/lead', authMiddleware.isAuthenticated, projectController.getProjectLead)
 
-router.patch(
-  '/:projectId/free-mode', authMiddleware.isAuthenticated, projectMiddleware.checkIsOwner, projectController.toggleFreeMode)
+router.patch('/:projectId/free-mode', authMiddleware.isAuthenticated, projectMiddleware.checkIsOwner, projectController.toggleFreeMode)
 
 export const APIs_project = router

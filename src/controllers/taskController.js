@@ -4,7 +4,8 @@ import { taskValidation } from '~/validations/taskValidation'
 
 const createTask = async (req, res, next) => {
   try {
-    const result = await taskService.createTask({ ...req.body, created_by: req.user._id })
+    console.log(req.params.projectId)
+    const result = await taskService.createTask({ ...req.body, created_by: req.user._id, project_id: req.params.projectId })
 
     return res.status(StatusCodes.CREATED).json({
       status: 'success',
@@ -19,8 +20,8 @@ const createTask = async (req, res, next) => {
 const updateTask = async (req, res, next) => {
   try {
     const { id } = req.params
-    const validatedData = await taskValidation.validateUpdate(req.body)
-    const result = await taskService.updateTask(id, validatedData)
+    const dataUpdate = req.body
+    const result = await taskService.updateTask(id, dataUpdate)
 
     return res.status(StatusCodes.OK).json({
       status: 'success',
@@ -91,15 +92,28 @@ const getTasks = async (req, res, next) => {
 const assignTask = async (req, res, next) => {
   try {
     const { id } = req.params
-    const validatedData = await taskValidation.validateAssign(req.body)
-    const result = await taskService.assignTask(id, {
-      ...validatedData,
-      assigned_by: req.user._id,
-    })
+    const dataAssign = req.body
+    const result = await taskService.assignTask(id, { ...dataAssign, assigned_by: req.user._id })
 
     return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Task assigned successfully',
+      data: result,
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+const unassignTask = async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const dataUnassign = req.body
+    const result = await taskService.unassignTask(id, dataUnassign)
+
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Task unassigned successfully',
       data: result,
     })
   } catch (error) {
@@ -130,5 +144,6 @@ export const taskController = {
   getTaskById,
   getTasks,
   assignTask,
+  unassignTask,
   updateTaskStatus,
 }
