@@ -21,7 +21,6 @@ const checkProjectPermission = (permissionName) => {
       if (!permissionName) {
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, MESSAGES.PERMISSION_NAME_NOT_FOUND)
       }
-
       const hasPermission = await projectService.verifyProjectPermission(
         projectId,
         userId,

@@ -172,66 +172,54 @@ const updateMemberRole = async (projectId, userId, projectRoleId, session = null
  * @returns {boolean} Kết quả kiểm tra quyền
  * @throws {ApiError} Nếu dự án không tồn tại hoặc free_mode tắt khi chỉnh sửa permission
  */
-const checkUserPermission = async (projectId, userId, permissionName) => {
-  try {
+const checkUserPermission = async (projectId, userId, permissionName = null) => {
+  // 1️⃣ Tìm project chứa user này
+  const project = await projectModel.findOne({
+    _id: projectId,
+    'members.user_id': userId,
+  }).lean()
 
-    // 1️⃣ Tìm project chứa user này
-    const project = await projectModel.findOne({
-      _id: projectId,
-      'members.user_id': userId,
-    }).lean()
+  if (!project) {
+    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
+  }
 
-    if (!project) {
-      throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
-    }
+  // 2️⃣ Lấy tất cả roles của user trong project
+  const memberRoles = project.members
+    .filter((m) => m.user_id.toString() === userId.toString())
+    .map((m) => m.project_role_id)
 
-    // 2️⃣ Nếu project đang tắt free_mode thì chặn luôn việc chỉnh sửa permission
-    if (
-      !project.free_mode && permissionName === 'change_member_role') {
-      throw new ApiError(
-        StatusCodes.FORBIDDEN,
-        'Không thể thực hiện hành động này vì chế độ free_mode đang bị tắt',
-      )
-    }
+  if (memberRoles.length === 0) {
+    return false
+  }
 
-    // 3️⃣ Lấy tất cả roles của user trong project
-    const memberRoles = project.members
-      .filter((m) => m.user_id.toString() === userId.toString())
-      .map((m) => m.project_role_id)
-
-    if (memberRoles.length === 0) {
-      return false
-    }
-
-    // 4️⃣ Nếu free_mode bật thì owner được bypass
-    if (project.free_mode) {
-      const ownerRole = await projectRolesModel.findOne(
-        {
-          _id: { $in: memberRoles },
-          name: 'owner',
-        },
-        { _id: 1 },
-      ).lean()
-      console.log('🟡 [checkUserPermission] Owner role found (bypass):', !!ownerRole)
-      if (ownerRole) return true
-    }
-
-    // 5️⃣ Check permission bình thường
-    const permissionId = await getPermissionId(permissionName)
-
-    const role = await projectRolesModel.findOne(
+  // 3️⃣ Nếu free_mode = true → owner được bypass
+  if (project.free_mode) {
+    const ownerRole = await projectRolesModel.findOne(
       {
         _id: { $in: memberRoles },
-        permissions: permissionId,
+        name: 'owner',
       },
       { _id: 1 },
     ).lean()
 
-    return !!role
-  } catch (error) {
-    console.error('❌ [checkUserPermission] Error:', error.message)
-    throw error
+    if (ownerRole) return true
+  } else {
+    // 4️⃣ Nếu free_mode = false → chỉ CHẶN edit_permission_role, còn lại cho phép luôn
+    if (permissionName !== 'edit_permission_role') return true
   }
+
+  // 5️⃣ Check permission bình thường
+  const permissionId = await getPermissionId(permissionName)
+
+  const role = await projectRolesModel.findOne(
+    {
+      _id: { $in: memberRoles },
+      permissions: permissionId,
+    },
+    { _id: 1 },
+  ).lean()
+
+  return !!role
 }
 
 

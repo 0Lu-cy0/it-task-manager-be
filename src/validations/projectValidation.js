@@ -56,7 +56,6 @@ const CREATE_NEW_SCHEMA = BASE_PROJECT_SCHEMA.append({
 
 const validateBeforeCreate = async (data) => {
   try {
-    console.log(data)
     return await CREATE_NEW_SCHEMA.validateAsync(data, { abortEarly: false })
   } catch (error) {
     throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, error.message)
