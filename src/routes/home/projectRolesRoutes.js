@@ -17,7 +17,7 @@ router.use(limiter)
 router.post(
   '/:projectId/roles/:roleId/permissions',
   authMiddleware.verifyToken,
-  projectRoleMiddleware.checkProjectPermission('change_member_role'),
+  projectRoleMiddleware.checkProjectPermission('edit_permission_role'),
   projectRoleMiddleware.validateAddPermission,
   projectRoleController.addPermission,
 )
@@ -26,7 +26,7 @@ router.post(
 router.delete(
   '/:projectId/roles/:roleId/permissions/:permissionId',
   authMiddleware.verifyToken,
-  projectRoleMiddleware.checkProjectPermission('change_member_role'),
+  projectRoleMiddleware.checkProjectPermission('edit_permission_role'),
   projectRoleMiddleware.validateRemovePermission,
   projectRoleController.removePermission,
 )

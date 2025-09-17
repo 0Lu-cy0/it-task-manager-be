@@ -49,7 +49,7 @@ const login = async (data) => {
     const accessToken = generateToken(
       { _id: user._id },
       process.env.JWT_SECRET_KEY,
-      '15m',
+      '1d',
     )
 
     // 🔑 Generate Refresh Token (sống dài, vd: 7d)

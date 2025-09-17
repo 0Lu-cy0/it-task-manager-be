@@ -74,6 +74,7 @@ const validateCreate = async (data) => {
     }),
     description: Joi.string().allow(null, ''),
     project_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+    created_by: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
     status: Joi.string().valid('todo', 'in_progress', 'testing', 'completed').default('todo'),
     priority: Joi.string().valid('low', 'medium', 'high').required(),
     due_date: Joi.date().allow(null),
@@ -106,7 +107,18 @@ const validateUpdate = async (data) => {
 const validateAssign = async (data) => {
   const schema = Joi.object({
     user_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-    role_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+  })
+
+  try {
+    return await schema.validateAsync(data, { abortEarly: false })
+  } catch (error) {
+    throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, error.message)
+  }
+}
+
+const validateUnassign = async (data) => {
+  const schema = Joi.object({
+    user_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   })
 
   try {
@@ -139,5 +151,6 @@ export const taskValidation = {
   validateCreate,
   validateUpdate,
   validateAssign,
+  validateUnassign,
   validateStatusUpdate,
 }
