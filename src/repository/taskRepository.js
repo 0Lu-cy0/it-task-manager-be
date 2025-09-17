@@ -49,6 +49,19 @@ const assignTask = async (taskId, assigneeData) => {
   return task
 }
 
+const unassignTask = async (taskId, assigneeData) => {
+  const task = await taskModel.findByIdAndUpdate(
+    taskId,
+    {
+      $pull: { assignees: assigneeData },
+      updated_at: Date.now(),
+    },
+    { new: true },
+  ).populate('assignees.user_id', 'username full_name avatar_url')
+
+  return task
+}
+
 const updateTaskStatus = async (taskId, status) => {
   const updateData = {
     status,
@@ -74,5 +87,6 @@ export const taskRepository = {
   getTaskById,
   findTasks,
   assignTask,
+  unassignTask,
   updateTaskStatus,
 }
