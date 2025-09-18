@@ -1,83 +1,103 @@
 import { taskModel } from '~/models/taskModel'
 
-const createTask = async (taskData) => {
+/**
+ * Tạo một task mới
+ */
+const createTask = async (taskData, options = {}) => {
   const task = new taskModel(taskData)
-  return task.save()
+  return await task.save(options)
 }
 
-const updateTask = async (taskId, updateData) => {
-  const task = await taskModel.findByIdAndUpdate(
+/**
+ * Cập nhật thông tin task
+ */
+const updateTask = async (taskId, updateData, options = {}) => {
+  return await taskModel.findByIdAndUpdate(
     taskId,
     { ...updateData, updated_at: Date.now() },
-    { new: true },
+    { new: true, ...options },
   )
-  return task
 }
 
-const deleteTask = async (taskId) => {
-  const task = await taskModel.findByIdAndUpdate(
+/**
+ * Xóa mềm task
+ */
+const deleteTask = async (taskId, options = {}) => {
+  return await taskModel.findByIdAndUpdate(
     taskId,
     { _destroy: true, updated_at: Date.now() },
-    { new: true },
+    { new: true, ...options },
   )
-  return task
 }
 
+/**
+ * Lấy thông tin task theo ID
+ */
 const getTaskById = async (taskId) => {
-  return taskModel.findById(taskId)
+  return await taskModel
+    .findById(taskId)
     .populate('assignees.user_id', 'username full_name avatar_url')
     .populate('created_by', 'username full_name')
+    .lean()
 }
 
+/**
+ * Tìm kiếm danh sách task
+ */
 const findTasks = async (query = {}) => {
-  return taskModel.find({ _destroy: false, ...query })
+  return await taskModel
+    .find({ _destroy: false, ...query })
     .populate('assignees.user_id', 'username full_name avatar_url')
     .populate('created_by', 'username full_name')
     .sort({ created_at: -1 })
+    .lean()
 }
 
-const assignTask = async (taskId, assigneeData) => {
-  const task = await taskModel.findByIdAndUpdate(
-    taskId,
-    {
-      $push: { assignees: assigneeData },
-      updated_at: Date.now(),
-    },
-    { new: true },
-  ).populate('assignees.user_id', 'username full_name avatar_url')
-
-  return task
+/**
+ * Gán người dùng vào task
+ */
+const assignTask = async (taskId, assigneeData, options = {}) => {
+  return await taskModel
+    .findByIdAndUpdate(
+      taskId,
+      {
+        $push: { assignees: assigneeData },
+        updated_at: Date.now(),
+      },
+      { new: true, ...options },
+    )
+    .populate('assignees.user_id', 'username full_name avatar_url')
 }
 
-const unassignTask = async (taskId, assigneeData) => {
-  const task = await taskModel.findByIdAndUpdate(
-    taskId,
-    {
-      $pull: { assignees: assigneeData },
-      updated_at: Date.now(),
-    },
-    { new: true },
-  ).populate('assignees.user_id', 'username full_name avatar_url')
-
-  return task
+/**
+ * Bỏ gán người dùng khỏi task
+ */
+const unassignTask = async (taskId, assigneeData, options = {}) => {
+  return await taskModel
+    .findByIdAndUpdate(
+      taskId,
+      {
+        $pull: { assignees: assigneeData },
+        updated_at: Date.now(),
+      },
+      { new: true, ...options },
+    )
+    .populate('assignees.user_id', 'username full_name avatar_url')
 }
 
-const updateTaskStatus = async (taskId, status) => {
+/**
+ * Cập nhật trạng thái task
+ */
+const updateTaskStatus = async (taskId, status, options = {}) => {
   const updateData = {
     status,
     updated_at: Date.now(),
   }
-
   if (status === 'completed') {
     updateData.completed_at = Date.now()
   }
-
-  const task = await taskModel.findByIdAndUpdate(
-    taskId,
-    updateData,
-    { new: true },
-  )
-  return task
+  return await taskModel
+    .findByIdAndUpdate(taskId, updateData, { new: true, ...options })
 }
 
 export const taskRepository = {

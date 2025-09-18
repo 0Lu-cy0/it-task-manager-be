@@ -32,6 +32,7 @@ const PROJECT_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema({
     default: [],
   },
   member_count: { type: Number, default: 0 },
+  last_activity: { type: Date, default: Date.now, index: true },
   _destroy: { type: Boolean, default: false },
   free_mode: { type: Boolean, default: false },
 }, { timestamps: true })
@@ -76,7 +77,6 @@ PROJECT_COLLECTION_SCHEMA_MONGOOSE.pre('save', function (next) {
  */
 PROJECT_COLLECTION_SCHEMA_MONGOOSE.pre('findOneAndUpdate', async function (next) {
   const update = this.getUpdate()
-  console.log('🟡 [findOneAndUpdate] update object:', JSON.stringify(update, null, 2))
   if (!update) return next()
 
   const project = await this.model.findById(this.getQuery()._id)
@@ -94,26 +94,13 @@ PROJECT_COLLECTION_SCHEMA_MONGOOSE.pre('findOneAndUpdate', async function (next)
     newMembers = Array.isArray(update.$set.members) ? update.$set.members : [update.$set.members]
   }
 
-  console.log('🟡 [findOneAndUpdate] newMembers:', JSON.stringify(newMembers, null, 2))
-
   if (newMembers.length > 0) {
     const newUserIds = newMembers.map(m => m.user_id.toString())
     const existingUserIds = project.members.map(m => m.user_id.toString())
-    console.log('=== Debug members trước khi validate ===')
-    console.log(project.members)
-    console.log('Số lượng:', project.members.length)
-    console.log('Số lượng unique:', new Set(project.members.map(m => m.user_id.toString())).size)
 
-
-    console.log('🟡 [findOneAndUpdate] newUserIds:', newUserIds)
-    console.log('🟡 [findOneAndUpdate] existingUserIds:', existingUserIds)
 
     // Kiểm tra user_id trùng
     if (newUserIds.some(id => existingUserIds.includes(id))) {
-      console.error('❌ Duplicate user_id detected!')
-      console.error('  ProjectId:', project._id.toString())
-      console.error('  Existing members:', existingUserIds)
-      console.error('  New members:', newUserIds)
       return next(new Error('Một user_id chỉ được phép xuất hiện một lần trong mảng members (Dòng 102)'))
     }
 
@@ -123,16 +110,8 @@ PROJECT_COLLECTION_SCHEMA_MONGOOSE.pre('findOneAndUpdate', async function (next)
     const currentLeads = project.members.filter(m => leadRoleIds.includes(m.project_role_id.toString())).length
     const newLeads = newMembers.filter(m => leadRoleIds.includes(m.project_role_id.toString())).length
 
-    console.log('🟡 [findOneAndUpdate] leadRoleIds:', leadRoleIds)
-    console.log('🟡 [findOneAndUpdate] currentLeads:', currentLeads)
-    console.log('🟡 [findOneAndUpdate] newLeads:', newLeads)
 
     if (currentLeads + newLeads > 1) {
-      console.error('❌ Too many leads detected!')
-      console.error('  ProjectId:', project._id.toString())
-      console.error('  Lead roleIds:', leadRoleIds)
-      console.error('  Current lead count:', currentLeads)
-      console.error('  New lead count:', newLeads)
       return next(new Error('Chỉ được phép có tối đa một lead trong dự án'))
     }
   }
@@ -153,5 +132,8 @@ PROJECT_COLLECTION_SCHEMA_MONGOOSE.virtual('tasks', {
 // Bật virtual khi convert sang JSON hoặc Object
 PROJECT_COLLECTION_SCHEMA_MONGOOSE.set('toObject', { virtuals: true })
 PROJECT_COLLECTION_SCHEMA_MONGOOSE.set('toJSON', { virtuals: true })
+
+PROJECT_COLLECTION_SCHEMA_MONGOOSE.index({ last_activity: -1 })
+
 
 export const projectModel = mongoose.model(PROJECT_COLLECTION_NAME, PROJECT_COLLECTION_SCHEMA_MONGOOSE)
