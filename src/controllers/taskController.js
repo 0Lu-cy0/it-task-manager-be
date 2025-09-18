@@ -4,7 +4,6 @@ import { taskValidation } from '~/validations/taskValidation'
 
 const createTask = async (req, res, next) => {
   try {
-    console.log(req.params.projectId)
     const result = await taskService.createTask({ ...req.body, created_by: req.user._id, project_id: req.params.projectId })
 
     return res.status(StatusCodes.CREATED).json({
