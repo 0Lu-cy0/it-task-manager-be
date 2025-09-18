@@ -1,0 +1,988 @@
+{
+	"info": {
+		"_postman_id": "ca561377-6f4a-4e57-95c1-e7a68ac013cc",
+		"name": "It task manager API",
+		"description": "# 🚀 Get started here\n\nThis template guides you through CRUD operations (GET, POST, PUT, DELETE), variables, and tests.\n\n## 🔖 **How to use this template**\n\n#### **Step 1: Send requests**\n\nRESTful APIs allow you to perform CRUD operations using the POST, GET, PUT, and DELETE HTTP methods.\n\nThis collection contains each of these [request](https://learning.postman.com/docs/sending-requests/requests/) types. Open each request and click \"Send\" to see what happens.\n\n#### **Step 2: View responses**\n\nObserve the response tab for status code (200 OK), response time, and size.\n\n#### **Step 3: Send new Body data**\n\nUpdate or add new data in \"Body\" in the POST request. Typically, Body data is also used in PUT request.\n\n```\n{\n    \"name\": \"Add your name in the body\"\n}\n\n ```\n\n#### **Step 4: Update the variable**\n\nVariables enable you to store and reuse values in Postman. We have created a [variable](https://learning.postman.com/docs/sending-requests/variables/) called `base_url` with the sample request [https://postman-api-learner.glitch.me](https://postman-api-learner.glitch.me). Replace it with your API endpoint to customize this collection.\n\n#### **Step 5: Add tests in the \"Scripts\" tab**\n\nAdding tests to your requests can help you confirm that your API is working as expected. You can write test scripts in JavaScript and view the output in the \"Test Results\" tab.\n\n<img src=\"https://content.pstmn.io/fa30ea0a-373d-4545-a668-e7b283cca343/aW1hZ2UucG5n\" width=\"2162\" height=\"1530\">\n\n## 💪 Pro tips\n\n- Use folders to group related requests and organize the collection.\n    \n- Add more [scripts](https://learning.postman.com/docs/writing-scripts/intro-to-scripts/) to verify if the API works as expected and execute workflows.\n    \n\n## 💡Related templates\n\n[API testing basics](https://go.postman.co/redirect/workspace?type=personal&collectionTemplateId=e9a37a28-055b-49cd-8c7e-97494a21eb54&sourceTemplateId=ddb19591-3097-41cf-82af-c84273e56719)  \n[API documentation](https://go.postman.co/redirect/workspace?type=personal&collectionTemplateId=e9c28f47-1253-44af-a2f3-20dce4da1f18&sourceTemplateId=ddb19591-3097-41cf-82af-c84273e56719)  \n[Authorization methods](https://go.postman.co/redirect/workspace?type=personal&collectionTemplateId=31a9a6ed-4cdf-4ced-984c-d12c9aec1c27&sourceTemplateId=ddb19591-3097-41cf-82af-c84273e56719)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "37437005",
+		"_collection_link": "https://team-1-6124.postman.co/workspace/Team-1-Workspace~e3653a21-2312-4309-81ef-cb20f5b076f9/collection/37437005-ca561377-6f4a-4e57-95c1-e7a68ac013cc?action=share&source=collection_link&creator=37437005"
+	},
+	"item": [
+		{
+			"name": "User",
+			"item": [
+				{
+					"name": "Đăng ký",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Kiểm tra status code",
+									"pm.test(\"Successful POST request\", function () {",
+									"    pm.expect(pm.response.code).to.be.equal(201); // Cụ thể hóa cho 201",
+									"});",
+									"",
+									"// Lưu token và log",
+									"try {",
+									"    const response = pm.response.json();",
+									"    if (response && response.data && response.data.token) {",
+									"        pm.environment.set(\"token\", response.data.token);",
+									"        console.log(\"Token saved to environment variable 'token':\", response.data.token);",
+									"    } else {",
+									"        console.log(\"No token found in response or invalid response structure\");",
+									"    }",
+									"} catch (error) {",
+									"    console.log(\"Error parsing response JSON:\", error.message);",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"test@gmail.com\",\n  \"password\": \"Cu0123456789\",\n  \"full_name\":\"Cường Nguyễn\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						},
+						"description": "This is a POST request, submitting data to an API via the request body. This request submits JSON data, and the data is reflected in the response.\n\nA successful POST request typically returns a `200 OK` or `201 Created` response code."
+					},
+					"response": []
+				},
+				{
+					"name": "Đăng nhập",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// ✅ Kiểm tra status code",
+									"pm.test(\"Successful POST request\", function () {",
+									"    pm.expect(pm.response.code).to.be.equal(201); // Cụ thể hóa cho 201",
+									"});",
+									"",
+									"// ✅ Lưu accessToken và log",
+									"try {",
+									"    const response = pm.response.json();",
+									"    if (response && response.data && response.data.accessToken) {",
+									"        pm.environment.set(\"accessToken\", response.data.accessToken);",
+									"        console.log(\"AccessToken saved to environment variable 'accessToken':\", response.data.accessToken);",
+									"    } else {",
+									"        console.log(\"No accessToken found in response or invalid response structure\");",
+									"    }",
+									"} catch (error) {",
+									"    console.log(\"Error parsing response JSON:\", error.message);",
+									"}",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"nc12042004@gmail.com\",\n  \"password\": \"Cu0123456789\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"description": "This is a POST request, submitting data to an API via the request body. This request submits JSON data, and the data is reflected in the response.\n\nA successful POST request typically returns a `200 OK` or `201 Created` response code."
+					},
+					"response": []
+				},
+				{
+					"name": "Đổi mật khẩu",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"currentPassword\":\"C12345678\",\r\n    \"newPassword\":\"Cu123456789\",\r\n    \"confirmPassword\":\"Cu123456789\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/auth//me/password",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"",
+								"me",
+								"password"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Yêu cầu đặt lại mật khẩu",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"nc12042004@gmail.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/reset-password/request?AuAuthorization=Bearer {{token}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"reset-password",
+								"request"
+							],
+							"query": [
+								{
+									"key": "AuAuthorization",
+									"value": "Bearer {{token}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Xác nhận đặt lại mật khẩu",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"resetToken\": \"3c6baf09f717db15dadd5f8fab0e999e089fa6e061c5c226c78c4001842c84fc\",\n  \"newPassword\": \"newpassword234\",\n  \"confirmPassword\":\"newpassword234\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/reset-password/confirm?AuAuthorization=Bearer {{token}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"reset-password",
+								"confirm"
+							],
+							"query": [
+								{
+									"key": "AuAuthorization",
+									"value": "Bearer {{token}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Lấy thông tin người dùng",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cập nhật hồ sơ",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"full_name\": \"Nguyễn Văn A\",\r\n  \"phone\": \"0912345678\",\r\n  \"department\":\"QA\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Đăng xuất",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/logout",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh token",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Project",
+			"item": [
+				{
+					"name": "Lời mời",
+					"item": [
+						{
+							"name": "Tạo lời mời vào project",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/home/invites/688f707517d1857885e3612f/inviteLink",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"home",
+										"invites",
+										"688f707517d1857885e3612f",
+										"inviteLink"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Nhấp vào link lời mời",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/home/invites/ae360a4596019ce152914c056361ca938a0faea42593e06676d689bc34b5650e",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"home",
+										"invites",
+										"ae360a4596019ce152914c056361ca938a0faea42593e06676d689bc34b5650e"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Permission",
+					"item": [
+						{
+							"name": "Cập nhật vai trò cho thanh viên trong project",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"change\": [\r\n        {\r\n            \"user_id\": \"68b5c09af20ed9b7c288e599\",\r\n            \"project_role_id\": \"688f707517d1857885e36135\"\r\n        }\r\n    ]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/home/projects/688f707517d1857885e3612f/roles",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"home",
+										"projects",
+										"688f707517d1857885e3612f",
+										"roles"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Thêm permission vào role",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"permissionId\": \"64f7b1c8e29b41d4a7160037\"\r\n}\r\n",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/home/project-roles/68bec845401d1da031900157/roles/68bec845401d1da03190015c/permissions",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"home",
+										"project-roles",
+										"68bec845401d1da031900157",
+										"roles",
+										"68bec845401d1da03190015c",
+										"permissions"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Xóa permission khỏi role",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/home/project-roles/688f707517d1857885e3612f/roles/688f707517d1857885e36135/permissions?=",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"home",
+										"project-roles",
+										"688f707517d1857885e3612f",
+										"roles",
+										"688f707517d1857885e36135",
+										"permissions"
+									],
+									"query": [
+										{
+											"key": "",
+											"value": ""
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Lấy danh sách permission của role",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/home/project-roles/688f707517d1857885e3612f/roles/688f707517d1857885e36135/permissions",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"home",
+										"project-roles",
+										"688f707517d1857885e3612f",
+										"roles",
+										"688f707517d1857885e36135",
+										"permissions"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Lấy tất cả project ra",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/home/projects",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"home",
+								"projects"
+							]
+						},
+						"description": "This is a GET request and it is used to \"get\" data from an endpoint. There is no request body for a GET request, but you can use query parameters to help specify the resource you want data on (e.g., in this request, we have `id=1`).\n\nA successful GET response will have a `200 OK` status, and should include some kind of response body - for example, HTML web content or JSON data."
+					},
+					"response": []
+				},
+				{
+					"name": "Tạo mới project",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Successful POST request\", function () {",
+									"    pm.expect(pm.response.code).to.be.equal(201);",
+									"});",
+									"",
+									"try {",
+									"    const response = pm.response.json();",
+									"    if (response.data) {",
+									"        console.log(\"Project created:\", response.data);",
+									"    } else {",
+									"        console.log(\"No project data in response\");",
+									"    }",
+									"} catch (error) {",
+									"    console.log(\"Error parsing response:\", error.message);",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Project 4\",\n  \"description\": \"Đây là project được tạo ra vào ngày 8/9/2025\",\n  \"created_by\": \"68b5c09af20ed9b7c288e599\",\n  \"status\":\"planning\",\n  \"priority\":\"low\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/home/projects",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"home",
+								"projects"
+							]
+						},
+						"description": "This is a POST request, submitting data to an API via the request body. This request submits JSON data, and the data is reflected in the response.\n\nA successful POST request typically returns a `200 OK` or `201 Created` response code."
+					},
+					"response": []
+				},
+				{
+					"name": "Update project",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Successful PUT request\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201, 204]);",
+									"});",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Project Moi\",\n  \"description\": \"Đây là project test API update\",\n  \"status\":\"in_progress\",\n  \"priority\":\"medium\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/home/projects/688f707517d1857885e3612f",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"home",
+								"projects",
+								"688f707517d1857885e3612f"
+							]
+						},
+						"description": "This is a PUT request and it is used to overwrite an existing piece of data. For instance, after you create an entity with a POST request, you may want to modify that later. You can do that using a PUT request. You typically identify the entity being updated by including an identifier in the URL (eg. `id=1`).\n\nA successful PUT request typically returns a `200 OK`, `201 Created`, or `204 No Content` response code."
+					},
+					"response": []
+				},
+				{
+					"name": "Xóa mềm project",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Successful DELETE request\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 202, 204]);",
+									"});",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/home/projects/688f707517d1857885e3612f",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"home",
+								"projects",
+								"688f707517d1857885e3612f"
+							]
+						},
+						"description": "This is a DELETE request, and it is used to delete data that was previously created via a POST request. You typically identify the entity being updated by including an identifier in the URL (eg. `id=1`).\n\nA successful DELETE request typically returns a `200 OK`, `202 Accepted`, or `204 No Content` response code."
+					},
+					"response": []
+				},
+				{
+					"name": "Lấy thông tin chi tiết project",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/home/projects/688f707517d1857885e3612f",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"home",
+								"projects",
+								"688f707517d1857885e3612f"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Free mode",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"free_mode\" : \"false\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/home/projects/68bec845401d1da031900157/free-mode",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"home",
+								"projects",
+								"68bec845401d1da031900157",
+								"free-mode"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Task",
+			"item": [
+				{
+					"name": "Lấy dữ liệu task",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "Lấy dữ liệu task theo id",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "Tạo task mới",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"title\": \"Task 7 - Test route create task\",\r\n    \"status\": \"testing\",\r\n    \"priority\": \"low\",\r\n    \"project_id\": \"68c7ce08d391ede9370c88c4\",\r\n    \"due_date\": \"2025-09-25T08:30:20.332+00:00\"\r\n  }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/home/tasks",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"home",
+								"tasks"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cập nhật dữ liệu task",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "Xóa task",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "Gán user cho task",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "Gỡ user ra khỏi task",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "Cập nhật status task",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "id",
+			"value": "1"
+		},
+		{
+			"key": "base_url",
+			"value": "https://postman-rest-api-learner.glitch.me/"
+		}
+	]
+}
