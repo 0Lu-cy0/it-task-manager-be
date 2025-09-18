@@ -1,13 +1,14 @@
 import express from 'express'
-import { StatusCodes } from 'http-status-codes'
-const Router = express.Router()
-// import { projectValidation } from '~/validations/projectValidation'
-// import { projectController } from '~/controllers/projectController'
+import { authMiddleware } from '~/middlewares/authMiddleware'
+import { dashboardController } from '~/controllers/dashboardController'
+const router = express.Router()
 
-Router.route('/')
-  .get((req, res) => res.status(StatusCodes.OK).json({
-    message: 'API get dashboard',
-  }))
-// .post(projectValidation.createNew, projectController.createNew)
+router.use(authMiddleware.isAuthenticated)
 
-export const projectRoute = Router
+// Lấy thông tin tổng quan
+router.get('/', dashboardController.getAllInfor)
+
+// Lấy thông tin project 3 ngày gần đây
+router.get('/recent', dashboardController.getRecentProject)
+
+export const APIs_dashboard = router

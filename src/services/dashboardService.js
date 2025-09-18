@@ -1,22 +1,15 @@
 /* eslint-disable no-useless-catch */
 // import { slugify } from '~/utils/formater'
-import { dashboardModel } from '~/models/dashboardModel'
-import ApiError from '~/utils/APIError'
-import { StatusCodes } from 'http-status-codes'
+import { dashboardRepository } from '~/repository/dashboardRepository'
 
-const getTotalProject = async (userId) => {
-  try {
-    const dashboard = await dashboardModel.getTotalProject(userId)
-    if (!userId) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Not Found Project')
-    }
-    return dashboard //Trả về cho controller những dữ liệu cần thiết cho phía client bên fe,
-    //trong service luôn phải có return
-  } catch (error) {
-    throw error
-  }
+const getAllInfor = async (userId) => {
+  return await dashboardRepository.findAll(userId)
+}
+const getRecentProject = async (userId) => {
+  return await dashboardRepository.lastProjectActivity(userId)
 }
 
 export const dashboardService = {
-  getTotalProject,
+  getAllInfor,
+  getRecentProject,
 }
