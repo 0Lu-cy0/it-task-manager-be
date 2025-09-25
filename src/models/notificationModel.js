@@ -41,10 +41,6 @@ const NOTIFICATION_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema({
   scheduled_for: {
     type: Date,
   },
-  _destroy: {
-    type: Boolean,
-    default: false,
-  },
 }, {
   timestamps: true,
 })

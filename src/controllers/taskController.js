@@ -1,6 +1,5 @@
 import { StatusCodes } from 'http-status-codes'
 import { taskService } from '~/services/taskService'
-import { taskValidation } from '~/validations/taskValidation'
 
 const createTask = async (req, res, next) => {
   try {
@@ -123,8 +122,8 @@ const unassignTask = async (req, res, next) => {
 const updateTaskStatus = async (req, res, next) => {
   try {
     const { id } = req.params
-    const { status } = await taskValidation.validateStatusUpdate(req.body)
-    const result = await taskService.updateTaskStatus(id, status)
+    const dataUpdate = req.body
+    const result = await taskService.updateTaskStatus(id, dataUpdate)
 
     return res.status(StatusCodes.OK).json({
       status: 'success',
