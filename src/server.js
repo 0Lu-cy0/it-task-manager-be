@@ -9,6 +9,7 @@ import { APIs_home } from './routes/home'
 import { APIs_auth } from './routes/auth'
 import { swaggerDocs } from '~/config/swagger'
 import { errorHandlingMiddleware } from './middlewares/errorHandlingMiddleware'
+import { setupMeiliIndexes } from '~/utils/searchUtils'
 
 const START_SERVER = () => {
   const app = express()
@@ -19,6 +20,9 @@ const START_SERVER = () => {
   app.use(express.json())
 
   //Route
+  app.get('/root', (req, res) => {
+    res.send('Backend is running 🚀. Use /auth/... for authentication APIs.')
+  })
   app.use('/', APIs_auth)
   app.use('/home', APIs_home)
 
@@ -44,6 +48,10 @@ const START_SERVER = () => {
     console.log('1. Connecting to MongoDB Cloud Atlas...')
     await CONNECT_DB()
     console.log('2. Connected to MongoDB Cloud Atlas!')
+
+    // Setup MeiliSearch indexes
+    await setupMeiliIndexes()
+
     //Khởi động Server Back-end sau-khi-đã Connect-Database- thành công
     START_SERVER()
   } catch (error) {

@@ -24,5 +24,8 @@ export const env = {
   // EMAIL_HTML_BUI: process.env.EMAIL_HTML_
   CLIENT_URL: process.env.CLIENT_URL,
 
+  MEILISEARCH_HOST: process.env.MEILISEARCH_HOST,
+  MEILISEARCH_API_KEY: process.env.MEILISEARCH_API_KEY,
+
   AUTHOR: process.env.AUTHOR,
 }
