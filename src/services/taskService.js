@@ -3,6 +3,7 @@ import { taskRepository } from '~/repository/taskRepository'
 import { ApiError } from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 import mongoose from 'mongoose'
+import { syncTaskToMeili, deleteTaskFromMeili } from '~/repository/searchRepository'
 
 const createTask = async (data) => {
   const session = await mongoose.startSession()
@@ -18,6 +19,7 @@ const createTask = async (data) => {
       }
       task = await taskRepository.createTask(data, { session })
       await projectService.touch(data.project_id, task.createdAt, { session })
+      await syncTaskToMeili(task)
     })
     return task
   } catch (error) {
@@ -39,6 +41,7 @@ const updateTask = async (taskId, updateData) => {
       }
       updatedTask = await taskRepository.updateTask(taskId, updateData, { session })
       await projectService.touch(task.project_id, updatedTask.updatedAt, { session })
+      await syncTaskToMeili(updatedTask)
     })
     return updatedTask
   } catch (error) {
@@ -60,6 +63,7 @@ const deleteTask = async (taskId) => {
       }
       await taskRepository.deleteTask(taskId, { session })
       await projectService.recomputeLastActivity(task.project_id, { session })
+      await deleteTaskFromMeili(taskId)
     })
     return true
   } catch (error) {
@@ -100,6 +104,7 @@ const assignTask = async (taskId, assignData) => {
       }
       updatedTask = await taskRepository.assignTask(taskId, assignData, { session })
       await projectService.touch(task.project_id, new Date(), { session })
+      await syncTaskToMeili(updatedTask)
     })
     return updatedTask
   } catch (error) {
@@ -127,6 +132,7 @@ const unassignTask = async (taskId, assignData) => {
       }
       updatedTask = await taskRepository.unassignTask(taskId, assignData, { session })
       await projectService.touch(task.project_id, new Date(), { session })
+      await syncTaskToMeili(updatedTask)
     })
     return updatedTask
   } catch (error) {
@@ -148,6 +154,7 @@ const updateTaskStatus = async (taskId, status) => {
       }
       updatedTask = await taskRepository.updateTaskStatus(taskId, status, { session })
       await projectService.touch(task.project_id, updatedTask.updatedAt, { session })
+      await syncTaskToMeili(updatedTask)
     })
     return updatedTask
   } catch (error) {
