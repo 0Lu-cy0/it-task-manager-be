@@ -7,12 +7,14 @@ import { getPermissionId } from '~/utils/permission'
 
 
 const createNew = async (data, options = {}) => {
-  return await projectModel.create([data], options)
+  const result = await projectModel.create([data], options)
+  return result[0]
 }
 
-const findOneById = async (id) => {
+const findOneById = async (id, options = {}) => {
   const project = await projectModel
     .findById(id)
+    .session(options.session || null) // Use the session for the query
     .populate('created_by', 'name email')
     .populate('members.user_id', 'name email')
     .populate('members.project_role_id', 'name')
