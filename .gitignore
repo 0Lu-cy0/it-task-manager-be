@@ -65,5 +65,8 @@ docker-compose.override.yml
 *.7z
 *.rar
 
-# ⚙️ Custom MeiliSearch binary
+# ⚙️ Custom MeiliSearch binaries
 meilisearch-*
+
+# 🚫 Ignore local binaries folder
+binaries/
