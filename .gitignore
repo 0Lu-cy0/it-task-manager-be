@@ -70,3 +70,4 @@ meilisearch-*
 
 # 🚫 Ignore local binaries folder
 binaries/
+meilisearch-windows-amd64.exe
