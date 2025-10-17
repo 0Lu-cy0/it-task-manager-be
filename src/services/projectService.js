@@ -1,0 +1,366 @@
+import { projectRepository } from '~/repository/projectRepository'
+import { projectRolesModel } from '~/models/projectRolesModel'
+import { authModel } from '~/models/authModel'
+import { projectValidation } from '~/validations/projectValidation'
+import { ApiError } from '~/utils/ApiError'
+import { StatusCodes } from 'http-status-codes'
+import { MESSAGES } from '~/constants/messages'
+import { defaultRolesModel } from '~/models/defaultRolesModel'
+import { permissionModel } from '~/models/permissionModel'
+import { getPermissionId } from '~/utils/permission'
+import mongoose from 'mongoose'
+import { projectModel } from '~/models/projectModel'
+import { taskModel } from '~/models/taskModel'
+import { syncProjectToMeili, deleteProjectFromMeili } from '~/repository/searchRepository'
+import { withTransaction } from '~/utils/mongooseHelper'
+
+// Hàm touch để cập nhật last_activity
+const touch = async (projectId, time = new Date(), options = {}) => {
+  try {
+    return await projectModel.updateOne(
+      { _id: projectId },
+      { $max: { last_activity: time } },
+      options, // Hỗ trợ session cho transaction
+    )
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(`Error updating last_activity for project ${projectId}:`, error)
+    throw error
+  }
+}
+
+// Hàm recompute last_activity khi cần (dùng sau này cho taskService)
+const recomputeLastActivity = async (projectId, options = {}) => {
+  try {
+    const res = await taskModel.aggregate([
+      { $match: { project_id: mongoose.Types.ObjectId(projectId), _destroy: false } },
+      { $group: { _id: null, maxTaskUpdated: { $max: '$updatedAt' } } },
+    ])
+    const maxTaskUpdated = res[0]?.maxTaskUpdated || null
+    const project = await projectModel.findById(projectId).lean()
+    const last = project.updatedAt > (maxTaskUpdated || new Date(0)) ? project.updatedAt : maxTaskUpdated
+    return await projectModel.updateOne(
+      { _id: projectId },
+      { $set: { last_activity: last || project.updatedAt } },
+      options,
+    )
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(`Error recomputing last_activity for project ${projectId}:`, error)
+    throw error
+  }
+}
+
+const createNew = async (data) => {
+  return await withTransaction(async (session) => {
+    if (!data.created_by) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, MESSAGES.UNAUTHORIZED)
+    }
+
+    // Tạo dự án mới
+    const project = await projectRepository.createNew({ ...data, last_activity: new Date() }, { session })
+
+    // Lấy danh sách vai trò mặc định
+    const defaultRoles = await defaultRolesModel.find({ _destroy: false }).lean()
+    if (!defaultRoles || defaultRoles.length === 0) {
+      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Không tìm thấy vai trò mặc định')
+    }
+
+    // Kiểm tra vai trò owner
+    const hasOwnerRole = defaultRoles.some((role) => role.name === 'owner')
+    if (!hasOwnerRole) {
+      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Vai trò owner không tồn tại')
+    }
+
+    // Validate permissions
+    const permissionIds = [...new Set(defaultRoles.flatMap((role) => role.permissions).map(id => id.toString()))]
+    const existingPermissions = (await permissionModel
+      .find({ _id: { $in: permissionIds }, _destroy: false })
+      .distinct('_id')).map(id => id.toString())
+
+    const invalidPermissions = permissionIds.filter((id) => !existingPermissions.includes(id))
+
+    if (invalidPermissions.length > 0) {
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        `Một số quyền không tồn tại hoặc đã bị xóa: ${invalidPermissions.join(', ')}`,
+      )
+    }
+
+    // Tạo project_roles
+    const projectRoles = defaultRoles.map((role) => ({
+      project_id: project._id,
+      name: role.name,
+      description: role.description,
+      permissions: role.permissions,
+      default_role_id: role._id,
+      created_at: new Date(),
+      updated_at: new Date(),
+      _destroy: false,
+    }))
+
+    // Chèn các vai trò
+    await projectRolesModel.insertMany(projectRoles, { session })
+
+    // Gán người tạo làm owner
+    const ownerRole = await projectRolesModel.findOne({ project_id: project._id, name: 'owner' }).session(session)
+    if (!ownerRole) {
+      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Không tìm thấy vai trò owner')
+    }
+
+    await projectRepository.addMember(project._id, {
+      user_id: data.created_by,
+      project_role_id: ownerRole._id,
+      joined_at: new Date(),
+    }, { session })
+
+    // Cập nhật last_activity
+    await touch(project._id, new Date(), { session })
+
+    // Sync with MeiliSearch after successful transaction
+    // Pass the session to findOneById to read uncommitted data
+    const fullProject = await projectRepository.findOneById(project._id, { session })
+    await syncProjectToMeili(fullProject)
+
+    return await projectRepository.findOneById(project._id, { session })
+  })
+}
+
+const getAll = async (userId, { page = 1, limit = 10, sortBy = 'created_at', order = 'desc', status, priority } = {}) => {
+  const filter = {
+    'members.user_id': userId,
+    _destroy: false,
+  }
+  if (status) filter.status = status
+  if (priority) filter.priority = priority
+
+  const sort = { [sortBy]: order === 'desc' ? -1 : 1 }
+  const options = { skip: (page - 1) * limit, limit: parseInt(limit) }
+
+  const projects = await projectRepository.getAll(filter, sort, options)
+  if (projects.length === 0) {
+    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.NO_PROJECTS_FOUND)
+  }
+  return projects
+}
+
+const getProjectById = async (projectId) => {
+  return await projectRepository.findOneById(projectId)
+}
+
+const addProjectMember = async (projectId, userId, roleId) => {
+  return await withTransaction(async (session) => {
+    const project = await projectRepository.findOneById(projectId)
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Dự án không tồn tại')
+    }
+    if (project.members.some(m => m.user_id._id.toString() === userId.toString())) {
+      throw new ApiError(StatusCodes.CONFLICT, 'Thành viên đã tồn tại trong dự án')
+    }
+    const userExists = await authModel.findById(userId).session(session)
+    if (!userExists) {
+      throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.USER_NOT_FOUND)
+    }
+    const role = await projectRolesModel.findById(roleId).lean()
+    if (!role) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Vai trò không tồn tại')
+    }
+    await projectRepository.addMember(projectId, {
+      user_id: userId,
+      project_role_id: roleId,
+      joined_at: new Date(),
+    }, { session })
+    await touch(projectId, new Date(), { session })
+  })
+}
+
+const removeProjectMember = async (projectId, userId, requesterId) => {
+  return await withTransaction(async (session) => {
+    const project = await projectRepository.findOneById(projectId)
+    const requester = project.members.find(m => m.user_id.toString() === requesterId.toString())
+    if (!requester) {
+      throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không phải thành viên của dự án')
+    }
+    const role = await projectRolesModel.findById(requester.project_role_id).lean()
+    const addMemberPermissionId = await getPermissionId('add_member')
+    if (!role.permissions.includes(addMemberPermissionId)) {
+      throw new ApiError(StatusCodes.FORBIDDEN, MESSAGES.FORBIDDEN)
+    }
+    const isMember = project.members.some(member => member.user_id.toString() === userId)
+    if (!isMember) {
+      throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.USER_NOT_MEMBER)
+    }
+    const result = await projectRepository.removeMember(projectId, userId, { session })
+    await touch(projectId, new Date(), { session })
+    return result
+  })
+}
+
+const updateProjectMemberRole = async (projectId, changes) => {
+  return await withTransaction(async (session) => {
+    const project = await projectModel.findById(projectId).session(session)
+    if (!project || project._destroy) {
+      throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
+    }
+    const userIds = changes.map(c => String(c.user_id))
+    const invalidUsers = userIds.filter(
+      userId => !project.members.some(m => String(m.user_id._id) === userId),
+    )
+    if (invalidUsers.length > 0) {
+      throw new ApiError(
+        StatusCodes.NOT_FOUND,
+        `Các thành viên không tồn tại trong dự án: ${invalidUsers.join(', ')}`,
+      )
+    }
+    const roleIds = changes.map(c => c.project_role_id)
+    const roles = await projectRolesModel.find({
+      project_id: projectId,
+      _id: { $in: roleIds },
+    }).lean()
+    const roleMap = new Map(roles.map(r => [String(r._id), r]))
+    const invalidRoles = roleIds.filter(id => !roleMap.has(String(id)))
+    if (invalidRoles.length > 0) {
+      throw new ApiError(
+        StatusCodes.NOT_FOUND,
+        `Các vai trò không tồn tại: ${invalidRoles.join(', ')}`,
+      )
+    }
+    const leadRole = roles.find(r => r.name === 'lead')
+    if (!leadRole) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy vai trò lead trong dự án')
+    }
+    const leadChanges = changes.filter(c => String(c.project_role_id) === String(leadRole._id))
+    if (leadChanges.length > 1) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Chỉ được phép gán tối đa một lead trong dự án')
+    }
+    if (leadChanges.length === 1) {
+      const [leadRole, memberRole] = await Promise.all([
+        projectRolesModel.findOne({ project_id: projectId, name: 'lead' }).lean(),
+        projectRolesModel.findOne({ project_id: projectId, name: 'member' }).lean(),
+      ])
+      if (!leadRole || !memberRole) {
+        throw new ApiError(StatusCodes.NOT_FOUND, 'Thiếu role lead/member trong dự án')
+      }
+      const newLeadUserId = String(leadChanges[0].user_id)
+      const oldLeads = project.members.filter(
+        m => String(m.project_role_id._id) === String(leadRole._id) &&
+          String(m.user_id._id) !== newLeadUserId,
+      )
+      if (oldLeads.length > 0) {
+        await Promise.all(
+          oldLeads.map(oldLead =>
+            projectRepository.updateMemberRole(projectId, String(oldLead.user_id._id), memberRole._id, session),
+          ),
+        )
+      }
+    }
+    const results = await Promise.all(
+      changes.map(async (c) => {
+        const roleId = roleMap.get(String(c.project_role_id))
+        return projectRepository.updateMemberRole(projectId, c.user_id, roleId._id, session)
+      }),
+    )
+    await touch(projectId, new Date(), { session })
+    return results
+  })
+}
+
+const getProjectRoles = async (projectId) => {
+  const project = await projectRepository.findOneById(projectId)
+  return await projectRolesModel.find({ project_id: projectId }).lean()
+}
+
+const getProjectLead = async (projectId) => {
+  const project = await projectRepository.findOneById(projectId)
+  if (!project || !project.members) {
+    return null
+  }
+
+  // The role is already populated by findOneById, so we can access its name directly.
+  const leadMember = project.members.find(m => m.project_role_id && m.project_role_id.name === 'lead')
+
+  if (!leadMember) {
+    return null
+  }
+
+  // The user is also populated, so we can access user details directly.
+  const user = leadMember.user_id
+  if (!user) {
+    return null
+  }
+
+  return { user_id: user._id, name: user.name, email: user.email }
+}
+
+const deleteProject = async (projectId) => {
+  return await withTransaction(async (session) => {
+    const result = await projectRepository.softDelete(projectId, { session })
+    await touch(projectId, new Date(), { session })
+
+    // Sync with MeiliSearch after successful transaction
+    if (result) {
+      await deleteProjectFromMeili(projectId)
+    }
+    return result
+  })
+}
+
+const verifyProjectPermission = async (projectId, userId, permissionName) => {
+  return await projectRepository.checkUserPermission(projectId, userId, permissionName)
+}
+
+const updateProject = async (projectId, updateData) => {
+  return await withTransaction(async (session) => {
+    const result = await projectRepository.update(projectId, updateData, { session })
+    await touch(projectId, new Date(), { session })
+
+    // Sync with MeiliSearch after successful transaction
+    if (result) {
+      const updatedProject = await projectRepository.findOneById(projectId)
+      await syncProjectToMeili(updatedProject)
+    }
+    return result
+  })
+}
+
+const toggleFreeMode = async ({ projectId, free_mode, currentUserId }) => {
+  return await withTransaction(async (session) => {
+    await projectValidation.validateToggleFreeMode({ projectId, free_mode })
+    const project = await projectRepository.findOneById(projectId)
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Project không tồn tại')
+    }
+    const normalizeId = (id) =>
+      typeof id === 'object' && id?._id ? id._id.toString() : id.toString()
+    const member = project.members.find(
+      (m) => normalizeId(m.user_id) === currentUserId.toString(),
+    )
+    if (!member) {
+      throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không thuộc project này')
+    }
+    const isOwner = member.project_role_id?.name === 'owner'
+    if (!isOwner) {
+      throw new ApiError(StatusCodes.FORBIDDEN, 'Chỉ owner mới được phép thao tác')
+    }
+    const result = await projectRepository.updateFreeMode(projectId, free_mode, { session })
+    await touch(projectId, new Date(), { session })
+    return result
+  })
+}
+
+export const projectService = {
+  createNew,
+  getAll,
+  getProjectById,
+  addProjectMember,
+  removeProjectMember,
+  updateProjectMemberRole,
+  getProjectRoles,
+  getProjectLead,
+  deleteProject,
+  verifyProjectPermission,
+  updateProject,
+  toggleFreeMode,
+  touch,
+  recomputeLastActivity,
+}
