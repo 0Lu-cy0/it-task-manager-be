@@ -24,19 +24,19 @@ const START_SERVER = () => {
   app.use(responseWrapper)
 
   //Route
-  app.get('/root', (req, res) => {
-    res.send('Backend is running 🚀. Use /auth/... for authentication APIs.')
+  app.get('/', (req, res) => {
+    res.send('Backend is running 🚀. Visit /api-docs for API documentation.')
   })
-  app.use('/', APIs_auth)
-  app.use('/home', APIs_home)
+
+  // API routes
+  app.use('/auth', APIs_auth)
+  app.use('/api', APIs_home)
 
   // Swagger Docs
   swaggerDocs(app)
 
   //Middleware xử lý lỗi tập trung
   app.use(errorHandlingMiddleware)
-
-  // đăng ký error-handler của responseWrapper sau cùng làm fallback
   app.use(responseWrapper.errorHandler)
 
   app.listen(env.APP_PORT, env.APP_HOST, () => {
