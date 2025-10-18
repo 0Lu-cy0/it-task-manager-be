@@ -1,0 +1,130 @@
+openapi: 3.0.0
+info:
+  title: IT Task Manager API
+  version: 1.0.0
+  description: |
+    ## 🚀 IT Task Manager Backend API
+    
+    Hệ thống backend quản lý công việc và dự án cho các team IT.
+    
+    ### 🔐 Xác thực
+    API sử dụng JWT Bearer Token để xác thực. Để sử dụng các endpoint được bảo vệ:
+    1. Đăng nhập qua `/auth/login` để lấy access token
+    2. Thêm header: `Authorization: Bearer {your_token}`
+    
+    ### 📊 Phân quyền
+    - **Owner**: Toàn quyền, có thể bật Free Mode
+    - **Lead**: Quản lý thành viên và tasks
+    - **Member**: Tạo và chỉnh sửa tasks
+    - **Viewer**: Chỉ xem
+    
+    ### 🔄 Rate Limiting
+    - Auth endpoints: 10 requests/15 phút
+    - Invite endpoints: 5 requests/1 giờ
+    - Other endpoints: 100 requests/15 phút
+  contact:
+    name: IT Task Manager Team
+    email: support@ittaskmanager.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8181
+    description: Development server
+  - url: https://api.ittaskmanager.com
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: Xác thực và quản lý tài khoản
+  - name: Projects
+    description: Quản lý dự án và thành viên
+  - name: Tasks
+    description: Quản lý nhiệm vụ và phân công
+  - name: Dashboard
+    description: Thống kê và báo cáo
+  - name: Invitations
+    description: Hệ thống mời thành viên
+  - name: Project Roles
+    description: Quản lý vai trò và quyền hạn
+  - name: Search
+    description: Tìm kiếm toàn cục
+  - name: Notifications
+    description: Hệ thống thông báo
+
+# Import all component definitions
+components:
+  $ref: './components.yaml#/components'
+
+# Import all path definitions
+paths:
+  # Authentication paths
+  /auth/register:
+    $ref: './auth.yaml#/paths/~1auth~1register'
+  /auth/login:
+    $ref: './auth.yaml#/paths/~1auth~1login'
+  /auth/reset-password/request:
+    $ref: './auth.yaml#/paths/~1auth~1reset-password~1request'
+  /auth/reset-password/confirm:
+    $ref: './auth.yaml#/paths/~1auth~1reset-password~1confirm'
+  /auth/me:
+    $ref: './auth.yaml#/paths/~1auth~1me'
+  /auth/me/password:
+    $ref: './auth.yaml#/paths/~1auth~1me~1password'
+  /auth/refresh:
+    $ref: './auth.yaml#/paths/~1auth~1refresh'
+  /auth/logout:
+    $ref: './auth.yaml#/paths/~1auth~1logout'
+
+  # Project paths
+  /home/projects:
+    $ref: './projects.yaml#/paths/~1home~1projects'
+  /home/projects/{projectId}:
+    $ref: './projects.yaml#/paths/~1home~1projects~1{projectId}'
+  /home/projects/{projectId}/members/{userId}:
+    $ref: './projects.yaml#/paths/~1home~1projects~1{projectId}~1members~1{userId}'
+  /home/projects/{projectId}/roles:
+    $ref: './projects.yaml#/paths/~1home~1projects~1{projectId}~1roles'
+  /home/projects/{projectId}/free-mode:
+    $ref: './projects.yaml#/paths/~1home~1projects~1{projectId}~1free-mode'
+
+  # Task paths
+  /home/tasks:
+    $ref: './tasks.yaml#/paths/~1home~1tasks'
+  /home/tasks/{projectId}:
+    $ref: './tasks.yaml#/paths/~1home~1tasks~1{projectId}'
+  /home/tasks/{projectId}/{id}:
+    $ref: './tasks.yaml#/paths/~1home~1tasks~1{projectId}~1{id}'
+  /home/tasks/{projectId}/{id}/assign:
+    $ref: './tasks.yaml#/paths/~1home~1tasks~1{projectId}~1{id}~1assign'
+  /home/tasks/{projectId}/{id}/unassign:
+    $ref: './tasks.yaml#/paths/~1home~1tasks~1{projectId}~1{id}~1unassign'
+  /home/tasks/{projectId}/{id}/status:
+    $ref: './tasks.yaml#/paths/~1home~1tasks~1{projectId}~1{id}~1status'
+
+  # Other endpoints
+  /home/dashboards:
+    $ref: './other-endpoints.yaml#/paths/~1home~1dashboards'
+  /home/dashboards/recent:
+    $ref: './other-endpoints.yaml#/paths/~1home~1dashboards~1recent'
+  /home/invites/{projectId}/inviteLink:
+    $ref: './other-endpoints.yaml#/paths/~1home~1invites~1{projectId}~1inviteLink'
+  /home/invites/{token}:
+    $ref: './other-endpoints.yaml#/paths/~1home~1invites~1{token}'
+  /home/project-roles/{projectId}/roles/{roleId}/permissions:
+    $ref: './other-endpoints.yaml#/paths/~1home~1project-roles~1{projectId}~1roles~1{roleId}~1permissions'
+  /home/project-roles/{projectId}/roles/{roleId}/permissions/{permissionId}:
+    $ref: './other-endpoints.yaml#/paths/~1home~1project-roles~1{projectId}~1roles~1{roleId}~1permissions~1{permissionId}'
+  /home/search:
+    $ref: './other-endpoints.yaml#/paths/~1home~1search'
+  /home/search/projects:
+    $ref: './other-endpoints.yaml#/paths/~1home~1search~1projects'
+  /home/search/tasks:
+    $ref: './other-endpoints.yaml#/paths/~1home~1search~1tasks'
+  /home/search/users:
+    $ref: './other-endpoints.yaml#/paths/~1home~1search~1users'
+  /home/noti:
+    $ref: './other-endpoints.yaml#/paths/~1home~1noti'
+  /home/noti/{notiId}:
+    $ref: './other-endpoints.yaml#/paths/~1home~1noti~1{notiId}'

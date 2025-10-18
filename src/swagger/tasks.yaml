@@ -1,0 +1,472 @@
+paths:
+  /home/tasks:
+    get:
+      tags:
+        - Tasks
+      summary: Lấy danh sách task
+      description: Trả về danh sách tất cả task mà người dùng có quyền xem
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Số trang
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          description: Số lượng item per page
+        - in: query
+          name: project_id
+          schema:
+            type: string
+          description: Lọc theo dự án
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [todo, in_progress, testing, completed]
+          description: Lọc theo trạng thái
+        - in: query
+          name: priority
+          schema:
+            type: string
+            enum: [low, medium, high]
+          description: Lọc theo độ ưu tiên
+        - in: query
+          name: assigned_to_me
+          schema:
+            type: boolean
+          description: Chỉ lấy task được gán cho mình
+      responses:
+        '200':
+          description: Danh sách task
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          tasks:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Task'
+                          pagination:
+                            type: object
+                            properties:
+                              page:
+                                type: integer
+                              limit:
+                                type: integer
+                              total:
+                                type: integer
+                              totalPages:
+                                type: integer
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /home/tasks/{projectId}:
+    post:
+      tags:
+        - Tasks
+      summary: Tạo task mới
+      description: Tạo một task mới trong dự án (cần quyền create_task)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - status
+                - priority
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                  example: "Design homepage mockup"
+                description:
+                  type: string
+                  example: "Create wireframes and mockups for the new homepage design"
+                status:
+                  type: string
+                  enum: [todo, in_progress, testing, completed]
+                  example: "todo"
+                priority:
+                  type: string
+                  enum: [low, medium, high]
+                  example: "medium"
+                due_date:
+                  type: string
+                  format: date
+                  example: "2024-02-15"
+                tags:
+                  type: array
+                  items:
+                    type: string
+                  example: ["design", "frontend", "ui"]
+      responses:
+        '201':
+          description: Task được tạo thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /home/tasks/{projectId}/{id}:
+    get:
+      tags:
+        - Tasks
+      summary: Lấy chi tiết task
+      description: Trả về thông tin chi tiết của một task (cần quyền view_task)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của task
+      responses:
+        '200':
+          description: Chi tiết task
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Task'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    put:
+      tags:
+        - Tasks
+      summary: Cập nhật task
+      description: Cập nhật thông tin task (cần quyền edit_task)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                  example: "Updated task title"
+                description:
+                  type: string
+                  example: "Updated task description"
+                status:
+                  type: string
+                  enum: [todo, in_progress, testing, completed]
+                  example: "in_progress"
+                priority:
+                  type: string
+                  enum: [low, medium, high]
+                  example: "high"
+                due_date:
+                  type: string
+                  format: date
+                  example: "2024-02-20"
+                tags:
+                  type: array
+                  items:
+                    type: string
+                  example: ["design", "frontend", "urgent"]
+      responses:
+        '200':
+          description: Cập nhật thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    delete:
+      tags:
+        - Tasks
+      summary: Xóa task
+      description: Xóa mềm task (cần quyền delete_task)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của task
+      responses:
+        '200':
+          description: Xóa thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /home/tasks/{projectId}/{id}/assign:
+    post:
+      tags:
+        - Tasks
+      summary: Gán task cho thành viên
+      description: Gán task cho một hoặc nhiều thành viên dự án (cần quyền assign_task)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - assignees
+              properties:
+                assignees:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - user_id
+                      - role_id
+                    properties:
+                      user_id:
+                        type: string
+                        example: "64f8a1b2c3d4e5f6a7b8c9d0"
+                      role_id:
+                        type: string
+                        example: "64f8a1b2c3d4e5f6a7b8c9d1"
+      responses:
+        '200':
+          description: Gán task thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /home/tasks/{projectId}/{id}/unassign:
+    post:
+      tags:
+        - Tasks
+      summary: Gỡ gán task
+      description: Loại bỏ thành viên khỏi task (cần quyền unassign_task)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_ids
+              properties:
+                user_ids:
+                  type: array
+                  items:
+                    type: string
+                  example: ["64f8a1b2c3d4e5f6a7b8c9d0", "64f8a1b2c3d4e5f6a7b8c9d1"]
+      responses:
+        '200':
+          description: Gỡ gán thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /home/tasks/{projectId}/{id}/status:
+    patch:
+      tags:
+        - Tasks
+      summary: Cập nhật trạng thái task
+      description: Thay đổi trạng thái của task (cần quyền status_task)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [todo, in_progress, testing, completed]
+                  example: "completed"
+      responses:
+        '200':
+          description: Cập nhật trạng thái thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
