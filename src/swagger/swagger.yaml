@@ -17,11 +17,6 @@ info:
     - **Lead**: Quản lý thành viên và tasks
     - **Member**: Tạo và chỉnh sửa tasks
     - **Viewer**: Chỉ xem
-    
-    ### 🔄 Rate Limiting
-    - Auth endpoints: 10 requests/15 phút
-    - Invite endpoints: 5 requests/1 giờ
-    - Other endpoints: 100 requests/15 phút
   contact:
     name: IT Task Manager Team
     email: support@ittaskmanager.com
@@ -34,22 +29,12 @@ servers:
     description: Development server
 
 tags:
-  - name: Authentication
-    description: Xác thực và quản lý tài khoản
-  - name: Projects
+  - name: User
+    description: Xác thực và quản lý tài khoản người dùng
+  - name: Project
     description: Quản lý dự án và thành viên
-  - name: Tasks
+  - name: Task
     description: Quản lý nhiệm vụ và phân công
-  - name: Dashboard
-    description: Thống kê và báo cáo
-  - name: Invitations
-    description: Hệ thống mời thành viên
-  - name: Project Roles
-    description: Quản lý vai trò và quyền hạn
-  - name: Search
-    description: Tìm kiếm toàn cục
-  - name: Notifications
-    description: Hệ thống thông báo
 
 components:
   securitySchemes:
@@ -66,9 +51,6 @@ components:
         _id:
           type: string
           example: "64f8a1b2c3d4e5f6a7b8c9d0"
-        username:
-          type: string
-          example: "john_doe"
         email:
           type: string
           format: email
@@ -76,9 +58,12 @@ components:
         full_name:
           type: string
           example: "John Doe"
-        avatar:
+        phone:
           type: string
-          example: "https://example.com/avatar.jpg"
+          example: "0912345678"
+        department:
+          type: string
+          example: "QA"
         createdAt:
           type: string
           format: date-time
@@ -106,14 +91,6 @@ components:
           type: string
           enum: [low, medium, high]
           example: "high"
-        start_date:
-          type: string
-          format: date
-          example: "2024-01-15"
-        end_date:
-          type: string
-          format: date
-          example: "2024-03-15"
         created_by:
           type: string
           example: "64f8a1b2c3d4e5f6a7b8c9d0"
@@ -170,8 +147,8 @@ components:
           example: "64f8a1b2c3d4e5f6a7b8c9d0"
         due_date:
           type: string
-          format: date
-          example: "2024-02-01"
+          format: date-time
+          example: "2024-02-01T10:00:00.000Z"
         completed_at:
           type: string
           format: date-time
@@ -207,26 +184,26 @@ components:
         _id:
           type: string
           example: "64f8a1b2c3d4e5f6a7b8c9d0"
-        user_id:
-          type: string
-          example: "64f8a1b2c3d4e5f6a7b8c9d0"
         title:
           type: string
           example: "New task assigned"
         message:
           type: string
-          example: "You have been assigned to task: Design homepage mockup"
+          example: "You have been assigned to a new task"
         type:
           type: string
-          enum: [task_assigned, project_invite, task_completed, project_update]
+          enum: [task_assigned, project_invite, task_completed]
           example: "task_assigned"
-        is_read:
+        read:
           type: boolean
           example: false
-        related_id:
+        user_id:
           type: string
           example: "64f8a1b2c3d4e5f6a7b8c9d0"
         createdAt:
+          type: string
+          format: date-time
+        updatedAt:
           type: string
           format: date-time
 
@@ -242,10 +219,6 @@ components:
           example: "Operation completed successfully"
         data:
           type: object
-        errors:
-          type: array
-          items:
-            type: object
 
     ErrorResponse:
       type: object
@@ -260,11 +233,6 @@ components:
           type: array
           items:
             type: object
-            properties:
-              field:
-                type: string
-              message:
-                type: string
 
   responses:
     UnauthorizedError:
@@ -272,51 +240,35 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          example:
-            status: "error"
-            message: "Unauthorized access"
+            $ref: "#/components/schemas/ErrorResponse"
 
     ForbiddenError:
       description: Insufficient permissions
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          example:
-            status: "error"
-            message: "Forbidden: Insufficient permissions"
+            $ref: "#/components/schemas/ErrorResponse"
 
     NotFoundError:
       description: Resource not found
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          example:
-            status: "error"
-            message: "Resource not found"
+            $ref: "#/components/schemas/ErrorResponse"
 
     ValidationError:
       description: Validation failed
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          example:
-            status: "error"
-            message: "Validation failed"
-            errors:
-              - field: "email"
-                message: "Email is required"
+            $ref: "#/components/schemas/ErrorResponse"
 
 paths:
-  # Authentication endpoints
   /auth/register:
     post:
       tags:
-        - Authentication
-      summary: Đăng ký tài khoản mới
+        - User
+      summary: Đăng ký
       description: Tạo tài khoản người dùng mới với email và mật khẩu
       requestBody:
         required: true
@@ -325,55 +277,56 @@ paths:
             schema:
               type: object
               required:
-                - username
                 - email
                 - password
                 - full_name
               properties:
-                username:
-                  type: string
-                  minLength: 3
-                  maxLength: 20
-                  example: "john_doe"
                 email:
                   type: string
                   format: email
-                  example: "john@example.com"
+                  example: "test@gmail.com"
                 password:
                   type: string
                   minLength: 6
-                  example: "password123"
+                  example: "Cu0123456789"
                 full_name:
                   type: string
                   minLength: 2
                   maxLength: 50
-                  example: "John Doe"
+                  example: "Cường Nguyễn"
       responses:
-        '201':
+        "201":
           description: Đăng ký thành công
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: "#/components/schemas/ApiResponse"
                   - type: object
                     properties:
                       data:
                         type: object
                         properties:
-                          user:
-                            $ref: '#/components/schemas/User'
-                          accessToken:
+                          token:
                             type: string
-                          refreshToken:
-                            type: string
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                            description: JWT token for authentication
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /auth/login:
     post:
       tags:
-        - Authentication
+        - User
       summary: Đăng nhập
       description: Xác thực người dùng và trả về JWT tokens
       requestBody:
@@ -389,121 +342,342 @@ paths:
                 email:
                   type: string
                   format: email
-                  example: "john@example.com"
+                  example: "nc12042004@gmail.com"
                 password:
                   type: string
-                  example: "password123"
+                  example: "Cu0123456789"
       responses:
-        '200':
+        "201":
           description: Đăng nhập thành công
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: "#/components/schemas/ApiResponse"
                   - type: object
                     properties:
                       data:
                         type: object
                         properties:
-                          user:
-                            $ref: '#/components/schemas/User'
                           accessToken:
                             type: string
-                          refreshToken:
-                            type: string
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          description: Email hoặc mật khẩu không đúng
+                            description: JWT access token
+        "400":
+          description: Bad Request
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/reset-password/request:
+    post:
+      tags:
+        - User
+      summary: Yêu cầu đặt lại mật khẩu
+      description: Gửi email reset mật khẩu đến người dùng
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "nc12042004@gmail.com"
+      responses:
+        "200":
+          description: Email reset đã được gửi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/reset-password/confirm:
+    post:
+      tags:
+        - User
+      summary: Xác nhận đặt lại mật khẩu
+      description: Đặt lại mật khẩu mới với token từ email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - resetToken
+                - newPassword
+                - confirmPassword
+              properties:
+                resetToken:
+                  type: string
+                  example: "3c6baf09f717db15dadd5f8fab0e999e089fa6e061c5c226c78c4001842c84fc"
+                newPassword:
+                  type: string
+                  example: "newpassword234"
+                confirmPassword:
+                  type: string
+                  example: "newpassword234"
+      responses:
+        "200":
+          description: Mật khẩu đã được đặt lại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /auth/me:
     get:
       tags:
-        - Authentication
-      summary: Lấy thông tin người dùng hiện tại
+        - User
+      summary: Lấy thông tin người dùng
       description: Trả về thông tin chi tiết của người dùng đã đăng nhập
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: Thông tin người dùng
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: "#/components/schemas/ApiResponse"
                   - type: object
                     properties:
                       data:
-                        $ref: '#/components/schemas/User'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
+                        $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    
+    put:
+      tags:
+        - User
+      summary: Cập nhật hồ sơ
+      description: Cập nhật thông tin profile của người dùng
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                full_name:
+                  type: string
+                  example: "Nguyễn Văn A"
+                phone:
+                  type: string
+                  example: "0912345678"
+                department:
+                  type: string
+                  example: "QA"
+      responses:
+        "200":
+          description: Cập nhật thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/User"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
-  # Project endpoints
+  /auth/me/password:
+    put:
+      tags:
+        - User
+      summary: Đổi mật khẩu
+      description: Thay đổi mật khẩu của người dùng hiện tại
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - currentPassword
+                - newPassword
+                - confirmPassword
+              properties:
+                currentPassword:
+                  type: string
+                  example: "C12345678"
+                newPassword:
+                  type: string
+                  example: "Cu123456789"
+                confirmPassword:
+                  type: string
+                  example: "Cu123456789"
+      responses:
+        "200":
+          description: Đổi mật khẩu thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/refresh:
+    get:
+      tags:
+        - User
+      summary: Refresh token
+      description: Làm mới access token
+      responses:
+        "200":
+          description: Token mới được tạo thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+    post:
+      tags:
+        - User
+      summary: Refresh token (POST)
+      description: Làm mới access token
+      responses:
+        "200":
+          description: Token mới được tạo thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      tags:
+        - User
+      summary: Đăng xuất
+      description: Vô hiệu hóa refresh token và đăng xuất người dùng
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Đăng xuất thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /home/projects:
     get:
       tags:
-        - Projects
-      summary: Lấy danh sách dự án
+        - Project
+      summary: Lấy tất cả project ra
       description: Trả về danh sách tất cả dự án mà người dùng tham gia
       security:
         - bearerAuth: []
-      parameters:
-        - in: query
-          name: page
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-          description: Số trang
-        - in: query
-          name: limit
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 10
-          description: Số lượng item per page
       responses:
-        '200':
+        "200":
           description: Danh sách dự án
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: "#/components/schemas/ApiResponse"
                   - type: object
                     properties:
                       data:
-                        type: object
-                        properties:
-                          projects:
-                            type: array
-                            items:
-                              $ref: '#/components/schemas/Project'
-                          pagination:
-                            type: object
-                            properties:
-                              page:
-                                type: integer
-                              limit:
-                                type: integer
-                              total:
-                                type: integer
-                              totalPages:
-                                type: integer
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Project"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
 
     post:
       tags:
-        - Projects
-      summary: Tạo dự án mới
+        - Project
+      summary: Tạo mới project
       description: Tạo một dự án mới với người tạo làm Owner
       security:
         - bearerAuth: []
@@ -515,17 +689,20 @@ paths:
               type: object
               required:
                 - name
+                - description
+                - created_by
                 - status
                 - priority
               properties:
                 name:
                   type: string
-                  minLength: 5
-                  maxLength: 50
-                  example: "Website Redesign Project"
+                  example: "Project 4"
                 description:
                   type: string
-                  example: "Complete redesign of company website with modern UI/UX"
+                  example: "Đây là project được tạo ra vào ngày 8/9/2025"
+                created_by:
+                  type: string
+                  example: "68b5c09af20ed9b7c288e599"
                 status:
                   type: string
                   enum: [planning, in_progress, testing, completed]
@@ -533,105 +710,403 @@ paths:
                 priority:
                   type: string
                   enum: [low, medium, high]
-                  example: "high"
-                start_date:
-                  type: string
-                  format: date
-                  example: "2024-01-15"
-                end_date:
-                  type: string
-                  format: date
-                  example: "2024-03-15"
+                  example: "low"
       responses:
-        '201':
+        "201":
           description: Dự án được tạo thành công
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: "#/components/schemas/ApiResponse"
                   - type: object
                     properties:
                       data:
-                        $ref: '#/components/schemas/Project'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
+                        $ref: "#/components/schemas/Project"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
 
-  # Task endpoints
-  /home/tasks:
+  /home/projects/{projectId}:
     get:
       tags:
-        - Tasks
-      summary: Lấy danh sách task
-      description: Trả về danh sách tất cả task mà người dùng có quyền xem
+        - Project
+      summary: Lấy thông tin chi tiết project
+      description: Trả về thông tin chi tiết của một dự án
       security:
         - bearerAuth: []
       parameters:
-        - in: query
-          name: page
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-          description: Số trang
-        - in: query
-          name: limit
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 10
-          description: Số lượng item per page
-        - in: query
-          name: project_id
+        - in: path
+          name: projectId
+          required: true
           schema:
             type: string
-          description: Lọc theo dự án
-        - in: query
-          name: status
-          schema:
-            type: string
-            enum: [todo, in_progress, testing, completed]
-          description: Lọc theo trạng thái
+          description: ID của dự án
+          example: "688f707517d1857885e3612f"
       responses:
-        '200':
+        "200":
+          description: Chi tiết dự án
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Project"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+    put:
+      tags:
+        - Project
+      summary: Update project
+      description: Cập nhật thông tin dự án
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+          example: "688f707517d1857885e3612f"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Project Moi"
+                description:
+                  type: string
+                  example: "Đây là project test API update"
+                status:
+                  type: string
+                  enum: [planning, in_progress, testing, completed]
+                  example: "in_progress"
+                priority:
+                  type: string
+                  enum: [low, medium, high]
+                  example: "medium"
+      responses:
+        "200":
+          description: Cập nhật thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Project"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+    delete:
+      tags:
+        - Project
+      summary: Xóa mềm project
+      description: Xóa mềm dự án
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+          example: "688f707517d1857885e3612f"
+      responses:
+        "200":
+          description: Xóa thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /home/projects/{projectId}/members/{userId}:
+    delete:
+      tags:
+        - Project
+      summary: Xóa thành viên khỏi project
+      description: Xóa một thành viên khỏi dự án
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: ID của người dùng
+      responses:
+        "200":
+          description: Xóa thành viên thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /home/projects/{projectId}/roles:
+    get:
+      tags:
+        - Project
+      summary: Lấy danh sách vai trò trong project
+      description: Trả về danh sách vai trò của các thành viên trong dự án
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+      responses:
+        "200":
+          description: Danh sách vai trò
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+    put:
+      tags:
+        - Project
+      summary: Cập nhật vai trò thành viên
+      description: Cập nhật vai trò cho thành viên trong dự án
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                change:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      user_id:
+                        type: string
+                      project_role_id:
+                        type: string
+      responses:
+        "200":
+          description: Cập nhật vai trò thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /home/projects/{projectId}/free-mode:
+    patch:
+      tags:
+        - Project
+      summary: Bật/tắt Free Mode
+      description: Bật hoặc tắt chế độ Free Mode cho dự án
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                free_mode:
+                  type: string
+                  enum: ["true", "false"]
+                  example: "false"
+      responses:
+        "200":
+          description: Cập nhật Free Mode thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /home/tasks:
+    get:
+      tags:
+        - Task
+      summary: Lấy dữ liệu task
+      description: Trả về danh sách tất cả task mà người dùng có quyền xem
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
           description: Danh sách task
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: "#/components/schemas/ApiResponse"
                   - type: object
                     properties:
                       data:
-                        type: object
-                        properties:
-                          tasks:
-                            type: array
-                            items:
-                              $ref: '#/components/schemas/Task'
-                          pagination:
-                            type: object
-                            properties:
-                              page:
-                                type: integer
-                              limit:
-                                type: integer
-                              total:
-                                type: integer
-                              totalPages:
-                                type: integer
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Task"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+    post:
+      tags:
+        - Task
+      summary: Tạo task mới
+      description: Tạo một task mới trong dự án
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - status
+                - priority
+                - project_id
+                - due_date
+              properties:
+                title:
+                  type: string
+                  example: "Task 7 - Test route create task"
+                status:
+                  type: string
+                  enum: [todo, in_progress, testing, completed]
+                  example: "testing"
+                priority:
+                  type: string
+                  enum: [low, medium, high]
+                  example: "low"
+                project_id:
+                  type: string
+                  example: "68c7ce08d391ede9370c88c4"
+                due_date:
+                  type: string
+                  format: date-time
+                  example: "2025-09-25T08:30:20.332+00:00"
+      responses:
+        "201":
+          description: Task được tạo thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
 
   /home/tasks/{projectId}:
     post:
       tags:
-        - Tasks
-      summary: Tạo task mới
-      description: Tạo một task mới trong dự án (cần quyền create_task)
+        - Task
+      summary: Tạo task trong project cụ thể
+      description: Tạo một task mới trong dự án cụ thể
       security:
         - bearerAuth: []
       parameters:
@@ -651,15 +1126,11 @@ paths:
                 - title
                 - status
                 - priority
+                - due_date
               properties:
                 title:
                   type: string
-                  minLength: 1
-                  maxLength: 200
-                  example: "Design homepage mockup"
-                description:
-                  type: string
-                  example: "Create wireframes and mockups for the new homepage design"
+                  example: "New task in project"
                 status:
                   type: string
                   enum: [todo, in_progress, testing, completed]
@@ -670,105 +1141,671 @@ paths:
                   example: "medium"
                 due_date:
                   type: string
-                  format: date
-                  example: "2024-02-15"
-                tags:
-                  type: array
-                  items:
-                    type: string
-                  example: ["design", "frontend", "ui"]
+                  format: date-time
+                  example: "2025-09-25T08:30:20.332+00:00"
       responses:
-        '201':
+        "201":
           description: Task được tạo thành công
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: "#/components/schemas/ApiResponse"
                   - type: object
                     properties:
                       data:
-                        $ref: '#/components/schemas/Task'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-        '404':
-          $ref: '#/components/responses/NotFoundError'
+                        $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
 
-  # Dashboard endpoints
-  /home/dashboards:
+  /home/tasks/{projectId}/{id}:
     get:
       tags:
-        - Dashboard
-      summary: Lấy thống kê tổng quan
-      description: Trả về thống kê tổng quan về dự án, task và hoạt động của người dùng
+        - Task
+      summary: Lấy thông tin chi tiết task
+      description: Trả về thông tin chi tiết của một task
       security:
         - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của task
       responses:
-        '200':
-          description: Thống kê tổng quan
+        "200":
+          description: Chi tiết task
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Task"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+    put:
+      tags:
+        - Task
+      summary: Cập nhật task
+      description: Cập nhật thông tin của một task
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: "Updated task title"
+                description:
+                  type: string
+                  example: "Updated task description"
+                status:
+                  type: string
+                  enum: [todo, in_progress, testing, completed]
+                  example: "in_progress"
+                priority:
+                  type: string
+                  enum: [low, medium, high]
+                  example: "high"
+                due_date:
+                  type: string
+                  format: date-time
+      responses:
+        "200":
+          description: Cập nhật task thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+    delete:
+      tags:
+        - Task
+      summary: Xóa task
+      description: Xóa một task
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của task
+      responses:
+        "200":
+          description: Xóa task thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /home/tasks/{projectId}/{id}/assign:
+    post:
+      tags:
+        - Task
+      summary: Gán user cho task
+      description: Gán một người dùng vào task
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                  example: "64f8a1b2c3d4e5f6a7b8c9d0"
+      responses:
+        "200":
+          description: Gán user thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /home/tasks/{projectId}/{id}/unassign:
+    post:
+      tags:
+        - Task
+      summary: Gỡ user ra khỏi task
+      description: Gỡ một người dùng khỏi task
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                  example: "64f8a1b2c3d4e5f6a7b8c9d0"
+      responses:
+        "200":
+          description: Gỡ user thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /home/tasks/{projectId}/{id}/status:
+    patch:
+      tags:
+        - Task
+      summary: Cập nhật status task
+      description: Cập nhật trạng thái của task
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [todo, in_progress, testing, completed]
+                  example: "completed"
+      responses:
+        "200":
+          description: Cập nhật status thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /home/dashboards:
+    get:
+      tags:
+        - Project
+      summary: Lấy dữ liệu dashboard
+      description: Trả về thống kê tổng quan cho dashboard
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Dữ liệu dashboard
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /home/dashboards/recent:
+    get:
+      tags:
+        - Project
+      summary: Lấy dự án gần đây
+      description: Trả về danh sách các dự án được truy cập gần đây
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Danh sách dự án gần đây
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          allOf:
+                            - $ref: "#/components/schemas/Project"
+                            - type: object
+                              properties:
+                                last_accessed:
+                                  type: string
+                                  format: date-time
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /home/invites/{projectId}/inviteLink:
+    post:
+      tags:
+        - Project
+      summary: Tạo lời mời vào project
+      description: Tạo link lời mời để mời người dùng vào dự án
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+          example: "688f707517d1857885e3612f"
+      responses:
+        "201":
+          description: Tạo lời mời thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
                   - type: object
                     properties:
                       data:
                         type: object
                         properties:
-                          totalProjects:
-                            type: integer
-                            example: 5
-                          totalTasks:
-                            type: integer
-                            example: 23
-                          completedTasks:
-                            type: integer
-                            example: 15
-                          pendingTasks:
-                            type: integer
-                            example: 8
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
+                          inviteToken:
+                            type: string
+                            description: Token để tham gia dự án
+                          inviteLink:
+                            type: string
+                            description: Link lời mời đầy đủ
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
-  # Search endpoints
+  /home/invites/{token}:
+    get:
+      tags:
+        - Project
+      summary: Nhấp vào link lời mời
+      description: Xử lý khi người dùng nhấp vào link lời mời
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+          description: Token lời mời
+          example: "ae360a4596019ce152914c056361ca938a0faea42593e06676d689bc34b5650e"
+      responses:
+        "200":
+          description: Thông tin lời mời
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          project:
+                            $ref: "#/components/schemas/Project"
+                          inviter:
+                            $ref: "#/components/schemas/User"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /home/project-roles/{projectId}/roles/{roleId}/permissions:
+    get:
+      tags:
+        - Project
+      summary: Lấy danh sách permission của role
+      description: Trả về danh sách quyền của một vai trò trong dự án
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+        - in: path
+          name: roleId
+          required: true
+          schema:
+            type: string
+          description: ID của vai trò
+      responses:
+        "200":
+          description: Danh sách quyền
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+    post:
+      tags:
+        - Project
+      summary: Thêm permission vào role
+      description: Thêm quyền mới vào vai trò
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+        - in: path
+          name: roleId
+          required: true
+          schema:
+            type: string
+          description: ID của vai trò
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                permissionId:
+                  type: string
+                  example: "64f7b1c8e29b41d4a7160037"
+      responses:
+        "200":
+          description: Thêm quyền thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+    delete:
+      tags:
+        - Project
+      summary: Xóa tất cả permission khỏi role
+      description: Xóa tất cả quyền khỏi vai trò
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+        - in: path
+          name: roleId
+          required: true
+          schema:
+            type: string
+          description: ID của vai trò
+      responses:
+        "200":
+          description: Xóa quyền thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /home/project-roles/{projectId}/roles/{roleId}/permissions/{permissionId}:
+    delete:
+      tags:
+        - Project
+      summary: Xóa permission cụ thể khỏi role
+      description: Xóa một quyền cụ thể khỏi vai trò
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID của dự án
+        - in: path
+          name: roleId
+          required: true
+          schema:
+            type: string
+          description: ID của vai trò
+        - in: path
+          name: permissionId
+          required: true
+          schema:
+            type: string
+          description: ID của quyền
+      responses:
+        "200":
+          description: Xóa quyền thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
   /home/search:
     get:
       tags:
-        - Search
-      summary: Tìm kiếm toàn cục
-      description: Tìm kiếm trên tất cả dự án, task và người dùng
+        - Project
+      summary: Tìm kiếm tổng hợp
+      description: Tìm kiếm trong projects, tasks và users
       security:
         - bearerAuth: []
       parameters:
         - in: query
           name: q
-          required: true
           schema:
             type: string
-            minLength: 1
           description: Từ khóa tìm kiếm
           example: "design"
-        - in: query
-          name: limit
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 50
-            default: 10
-          description: Số lượng kết quả tối đa
       responses:
-        '200':
+        "200":
           description: Kết quả tìm kiếm
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: "#/components/schemas/ApiResponse"
                   - type: object
                     properties:
                       data:
@@ -777,60 +1814,261 @@ paths:
                           projects:
                             type: array
                             items:
-                              $ref: '#/components/schemas/Project'
+                              $ref: "#/components/schemas/Project"
                           tasks:
                             type: array
                             items:
-                              $ref: '#/components/schemas/Task'
+                              $ref: "#/components/schemas/Task"
                           users:
                             type: array
                             items:
-                              $ref: '#/components/schemas/User'
-                          total:
-                            type: integer
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
+                              $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
 
-  # Notification endpoints
-  /home/noti:
+  /home/search/projects:
     get:
       tags:
-        - Notifications
-      summary: Lấy tất cả thông báo
-      description: Trả về danh sách thông báo của người dùng hiện tại
+        - Project
+      summary: Tìm kiếm projects
+      description: Tìm kiếm trong danh sách dự án
       security:
         - bearerAuth: []
       parameters:
         - in: query
-          name: page
+          name: q
           schema:
-            type: integer
-            minimum: 1
-            default: 1
-          description: Số trang
-        - in: query
-          name: limit
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 50
-            default: 20
-          description: Số lượng thông báo per page
+            type: string
+          description: Từ khóa tìm kiếm
+          example: "website"
       responses:
-        '200':
-          description: Danh sách thông báo
+        "200":
+          description: Kết quả tìm kiếm projects
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: "#/components/schemas/ApiResponse"
                   - type: object
                     properties:
                       data:
                         type: array
                         items:
-                          $ref: '#/components/schemas/Notification'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
+                          $ref: "#/components/schemas/Project"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /home/search/tasks:
+    get:
+      tags:
+        - Task
+      summary: Tìm kiếm tasks
+      description: Tìm kiếm trong danh sách nhiệm vụ
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+          description: Từ khóa tìm kiếm
+          example: "design"
+      responses:
+        "200":
+          description: Kết quả tìm kiếm tasks
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /home/search/users:
+    get:
+      tags:
+        - User
+      summary: Tìm kiếm users
+      description: Tìm kiếm trong danh sách người dùng
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+          description: Từ khóa tìm kiếm
+          example: "john"
+      responses:
+        "200":
+          description: Kết quả tìm kiếm users
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /home/noti:
+    get:
+      tags:
+        - User
+      summary: Lấy danh sách thông báo
+      description: Trả về danh sách thông báo của người dùng
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Danh sách thông báo
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Notification"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+    delete:
+      tags:
+        - User
+      summary: Xóa tất cả thông báo
+      description: Xóa tất cả thông báo của người dùng
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Xóa thông báo thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /home/noti/{notiId}:
+    get:
+      tags:
+        - User
+      summary: Lấy chi tiết thông báo
+      description: Trả về thông tin chi tiết của một thông báo
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: notiId
+          required: true
+          schema:
+            type: string
+          description: ID của thông báo
+      responses:
+        "200":
+          description: Chi tiết thông báo
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Notification"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+    patch:
+      tags:
+        - User
+      summary: Đánh dấu thông báo đã đọc
+      description: Cập nhật trạng thái đã đọc cho thông báo
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: notiId
+          required: true
+          schema:
+            type: string
+          description: ID của thông báo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                read:
+                  type: boolean
+                  example: true
+      responses:
+        "200":
+          description: Cập nhật thông báo thành công
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Notification"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+    delete:
+      tags:
+        - User
+      summary: Xóa thông báo
+      description: Xóa một thông báo cụ thể
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: notiId
+          required: true
+          schema:
+            type: string
+          description: ID của thông báo
+      responses:
+        "200":
+          description: Xóa thông báo thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"

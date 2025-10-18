@@ -67,12 +67,4 @@ const START_SERVER = () => {
     }
   })()
 
-// CONNECT_DB()
-//   .then(() => 'Đã kết nối tới MongoDB Cloud Atlat!')
-//   .then(() => START_SERVER())
-//   .catch(err => {
-//     console.error(err)
-//     process.exit(0)
-//   })
-
 
