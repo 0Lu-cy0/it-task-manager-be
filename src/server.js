@@ -16,34 +16,33 @@ const START_SERVER = () => {
   const app = express()
 
   app.use(cors(corsOptions))
+
+  //Enable req.body json data
   app.use(express.json())
+
+  // đăng ký middleware bọc response toàn cục (sau body parser, trước routes)
   app.use(responseWrapper)
 
-  // Base route
+  //Route
   app.get('/', (req, res) => {
-    res.json({
-      status: 'success',
-      message: 'IT Task Manager API',
-      documentation: '/api-docs',
-      version: '1.0.0',
-    })
+    res.send('Backend is running 🚀. Visit /api-docs for API documentation.')
   })
 
-  // API Routes with versioning
+  // API routes - keep original paths to avoid breaking changes
   app.use('/auth', APIs_auth)
-  app.use('/api', APIs_home)
+  app.use('/home', APIs_home)
 
-  // Swagger Documentation
+  // Swagger Docs
   swaggerDocs(app)
 
-  // Error handling
+  //Middleware xử lý lỗi tập trung
   app.use(errorHandlingMiddleware)
   app.use(responseWrapper.errorHandler)
 
   app.listen(env.APP_PORT, env.APP_HOST, () => {
-    // eslint-disable-next-line no-console
     console.log(`3. Hello ${env.AUTHOR}, I am running at http://${env.APP_HOST}:${env.APP_PORT}/`)
   })
+
   //Thực hiện các tác vụ cleanup trước khi dừng server lại
   exitHook(() => {
     console.log('\n4. Goodbye Cat2004 :>>>, never see again !-_-!')
