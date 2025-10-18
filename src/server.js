@@ -16,26 +16,27 @@ const START_SERVER = () => {
   const app = express()
 
   app.use(cors(corsOptions))
-
-  //Enable req.body json data
   app.use(express.json())
-
-  // đăng ký middleware bọc response toàn cục (sau body parser, trước routes)
   app.use(responseWrapper)
 
-  //Route
+  // Base route
   app.get('/', (req, res) => {
-    res.send('Backend is running 🚀. Visit /api-docs for API documentation.')
+    res.json({
+      status: 'success',
+      message: 'IT Task Manager API',
+      documentation: '/api-docs',
+      version: '1.0.0',
+    })
   })
 
-  // API routes
+  // API Routes with versioning
   app.use('/auth', APIs_auth)
   app.use('/api', APIs_home)
 
-  // Swagger Docs
+  // Swagger Documentation
   swaggerDocs(app)
 
-  //Middleware xử lý lỗi tập trung
+  // Error handling
   app.use(errorHandlingMiddleware)
   app.use(responseWrapper.errorHandler)
 

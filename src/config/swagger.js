@@ -8,13 +8,18 @@ const options = {
     info: {
       title: 'IT Task Manager API',
       version: '1.0.0',
-      description: 'RESTful API documentation for IT Task Manager',
+      description: 'API documentation for IT Task Manager Backend',
     },
     servers: [
       {
         url: `http://${env.APP_HOST}:${env.APP_PORT}`,
         description: 'Development Server',
       },
+    ],
+    tags: [
+      { name: 'Auth', description: 'Authentication endpoints' },
+      { name: 'Projects', description: 'Project management' },
+      { name: 'Tasks', description: 'Task management' },
     ],
     components: {
       securitySchemes: {
@@ -24,37 +29,23 @@ const options = {
           bearerFormat: 'JWT',
         },
       },
-      schemas: {
-        ApiResponse: {
-          type: 'object',
-          properties: {
-            status: {
-              type: 'string',
-              enum: ['success', 'error'],
-              example: 'success',
-            },
-            message: {
-              type: 'string',
-              example: 'Operation successful',
-            },
-            data: {
-              type: 'object',
-            },
-          },
+      responses: {
+        UnauthorizedError: {
+          description: 'Access token is missing or invalid',
         },
       },
-      security: [
-        {
-          bearerAuth: [],
-        },
-      ],
     },
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
   },
   apis: [
     './src/routes/**/*.js',
     './src/models/*.js',
     './src/swagger/*.yaml',
-  ], // nơi chứa API docs
+  ],
 }
 
 const swaggerSpec = swaggerJSDoc(options)
