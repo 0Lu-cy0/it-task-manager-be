@@ -1,3 +1,4 @@
+import { options } from 'joi'
 import { taskModel } from '~/models/taskModel'
 
 /**
@@ -15,7 +16,7 @@ const updateTask = async (taskId, updateData, options = {}) => {
   return await taskModel.findByIdAndUpdate(
     taskId,
     { ...updateData, updated_at: Date.now() },
-    { new: true, ...options },
+    { new: true, ...options }
   )
 }
 
@@ -26,14 +27,14 @@ const deleteTask = async (taskId, options = {}) => {
   return await taskModel.findByIdAndUpdate(
     taskId,
     { _destroy: true, updated_at: Date.now() },
-    { new: true, ...options },
+    { new: true, ...options }
   )
 }
 
 /**
  * Lấy thông tin task theo ID
  */
-const getTaskById = async (taskId) => {
+const getTaskById = async taskId => {
   return await taskModel
     .findById(taskId)
     .populate('assignees.user_id', 'username full_name avatar_url')
@@ -64,7 +65,7 @@ const assignTask = async (taskId, assigneeData, options = {}) => {
         $push: { assignees: assigneeData },
         updated_at: Date.now(),
       },
-      { new: true, ...options },
+      { new: true, ...options }
     )
     .populate('assignees.user_id', 'username full_name avatar_url')
 }
@@ -80,7 +81,7 @@ const unassignTask = async (taskId, assigneeData, options = {}) => {
         $pull: { assignees: assigneeData },
         updated_at: Date.now(),
       },
-      { new: true, ...options },
+      { new: true, ...options }
     )
     .populate('assignees.user_id', 'username full_name avatar_url')
 }
@@ -96,8 +97,35 @@ const updateTaskStatus = async (taskId, status, options = {}) => {
   if (status === 'completed') {
     updateData.completed_at = Date.now()
   }
+  return await taskModel.findByIdAndUpdate(taskId, updateData, { new: true, ...options })
+}
+
+const findByColumnId = async (columnId, options = {}) => {
+  const tasks = await taskModel
+    .find({
+      columnId: columnId,
+      _destroy: false,
+    })
+    .session(options.session || null)
+    .lean()
+    .exec()
+  return tasks
+}
+
+const deleteByColumnId = async (columnId, options = {}) => {
+  const result = await taskModel
+    .updateMany({ columnId: columnId }, { $set: { _destroy: true } })
+    .session(options.session || null)
+    .exec()
+
+  return result
+}
+
+const updateById = async (taskId, updateData, options = {}) => {
   return await taskModel
-    .findByIdAndUpdate(taskId, updateData, { new: true, ...options })
+    .findByIdAndUpdate(taskId, { ...updateData, updated_at: Date.now() }, { new: true, ...options })
+    .session(options.session || null)
+    .exec()
 }
 
 export const taskRepository = {
@@ -109,4 +137,7 @@ export const taskRepository = {
   assignTask,
   unassignTask,
   updateTaskStatus,
+  findByColumnId,
+  deleteByColumnId,
+  updateById,
 }

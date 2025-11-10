@@ -13,10 +13,12 @@ import { conversationModel } from '../src/models/conversationModel.js'
 import { chatContactModel } from '../src/models/chatContactModel.js'
 import { notificationModel } from '../src/models/notificationModel.js'
 import { enumModel } from '../src/models/enumModel.js'
+import { ColumnModel } from '../src/models/columnModal.js' // Thay bằng đường dẫn thực tế
 
 async function seedDatabase() {
   try {
     await CONNECT_DB()
+
     console.log('✅ Bắt đầu xóa dữ liệu cũ...')
     console.log('✅ Kiểm tra model:', userModel) // sẽ là undefined nếu import sai
     console.log('✅ Kiểm tra model:', projectModel)
@@ -29,7 +31,7 @@ async function seedDatabase() {
     console.log('✅ Kiểm tra model:', enumModel)
     console.log('✅ Kiểm tra model:', authModel)
     console.log('✅ Kiểm tra model:', userModel)
-
+    console.log('✅ Kiểm tra model:', ColumnModel)
 
     // Xóa dữ liệu cũ trong tất cả các collection
     await Promise.all([

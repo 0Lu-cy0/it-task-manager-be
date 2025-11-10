@@ -6,10 +6,11 @@ import { APIs_invite } from './inviteRoute'
 import { APIs_dashboard } from './dashboardRoute'
 import { APIs_notification } from './notificationRoute'
 import { APIs_search } from './searchRoute'
-
+import { APIs_column } from './columnRouter'
 
 const Router = express.Router()
 
+Router.use('/columns', APIs_column)
 Router.use('/projects', APIs_project)
 Router.use('/tasks', APIs_task)
 Router.use('/project-roles', APIs_project_roles)

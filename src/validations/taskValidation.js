@@ -20,26 +20,34 @@ export const TASK_COLLECTION_SCHEMA_JOI = Joi.object({
   }),
   project_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   created_by: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-  due_date: Joi.date().allow(null).default(null),
+  columnId: Joi.string().allow(null, ''),
+  due_date: Joi.date().allow(null, ''),
   completed_at: Joi.date().allow(null).default(null),
-  assignees: Joi.array().items(
-    Joi.object({
-      user_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-      role_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-      assigned_by: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-      assigned_at: Joi.date().timestamp().default(Date.now),
-    }),
-  ).default([]),
+  assignees: Joi.array()
+    .items(
+      Joi.object({
+        user_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+        role_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+        assigned_by: Joi.string()
+          .required()
+          .pattern(OBJECT_ID_RULE)
+          .message(OBJECT_ID_RULE_MESSAGE),
+        assigned_at: Joi.date().timestamp().default(Date.now),
+      })
+    )
+    .default([]),
   tags: Joi.array().items(Joi.string()).default([]),
-  reminders: Joi.array().items(
-    Joi.object({
-      time: Joi.date().required(),
-      type: Joi.string().valid('email', 'popup', 'push', 'sms').default('popup'),
-      method: Joi.string().optional(),
-      created_by: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
-      created_at: Joi.date().timestamp().default(Date.now),
-    }),
-  ).default([]),
+  reminders: Joi.array()
+    .items(
+      Joi.object({
+        time: Joi.date().required(),
+        type: Joi.string().valid('email', 'popup', 'push', 'sms').default('popup'),
+        method: Joi.string().optional(),
+        created_by: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+        created_at: Joi.date().timestamp().default(Date.now),
+      })
+    )
+    .default([]),
   created_at: Joi.date().timestamp().default(Date.now),
   updated_at: Joi.date().timestamp().default(Date.now),
   _destroy: Joi.boolean().default(false),
@@ -58,7 +66,7 @@ export const CREATE_NEW_SCHEMA = Joi.object({
   created_by: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 })
 
-const validateBeforeCreate = async (data) => {
+const validateBeforeCreate = async data => {
   try {
     return await TASK_COLLECTION_SCHEMA_JOI.validateAsync(data, { abortEarly: false })
   } catch (error) {
@@ -66,7 +74,7 @@ const validateBeforeCreate = async (data) => {
   }
 }
 
-const validateCreate = async (data) => {
+const validateCreate = async data => {
   const schema = Joi.object({
     title: Joi.string().required().trim().messages({
       'any.required': 'Title is required',
@@ -79,6 +87,8 @@ const validateCreate = async (data) => {
     priority: Joi.string().valid('low', 'medium', 'high').required(),
     due_date: Joi.date().allow(null),
     tags: Joi.array().items(Joi.string()),
+    columnId: Joi.string().allow(null, ''),
+    dueDate: Joi.date().allow(null),
   })
 
   try {
@@ -88,7 +98,7 @@ const validateCreate = async (data) => {
   }
 }
 
-const validateUpdate = async (data) => {
+const validateUpdate = async data => {
   const schema = Joi.object({
     title: Joi.string().trim(),
     description: Joi.string().allow(null, ''),
@@ -104,7 +114,7 @@ const validateUpdate = async (data) => {
   }
 }
 
-const validateAssign = async (data) => {
+const validateAssign = async data => {
   const schema = Joi.object({
     user_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   })
@@ -116,7 +126,7 @@ const validateAssign = async (data) => {
   }
 }
 
-const validateUnassign = async (data) => {
+const validateUnassign = async data => {
   const schema = Joi.object({
     user_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   })
@@ -128,15 +138,12 @@ const validateUnassign = async (data) => {
   }
 }
 
-const validateStatusUpdate = async (data) => {
+const validateStatusUpdate = async data => {
   const schema = Joi.object({
-    status: Joi.string()
-      .valid('todo', 'in_progress', 'testing', 'completed')
-      .required()
-      .messages({
-        'any.required': 'Status is required',
-        'any.only': 'Status must be one of [todo, in_progress, testing, completed]',
-      }),
+    status: Joi.string().valid('todo', 'in_progress', 'testing', 'completed').required().messages({
+      'any.required': 'Status is required',
+      'any.only': 'Status must be one of [todo, in_progress, testing, completed]',
+    }),
   })
 
   try {

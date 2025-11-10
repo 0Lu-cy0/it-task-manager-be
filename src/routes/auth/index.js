@@ -1,8 +1,8 @@
 //src/route/auth/index.js
-import express from 'express'
-import { authRoute } from './authRoute'
-const Router = express.Router()
+import express from "express";
+import { authRoute } from "./authRoute";
+const Router = express.Router();
 
-Router.use('/auth', authRoute)
+Router.use("/", authRoute);
 
-export const APIs_auth = Router
+export const APIs_auth = Router;

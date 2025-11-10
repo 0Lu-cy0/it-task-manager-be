@@ -5,7 +5,6 @@ import { MESSAGES } from '~/constants/messages'
 import { projectRolesModel } from '~/models/projectRolesModel'
 import { getPermissionId } from '~/utils/permission'
 
-
 const createNew = async (data, options = {}) => {
   const result = await projectModel.create([data], options)
   return result[0]
@@ -31,7 +30,6 @@ const findOneById = async (id, options = {}) => {
   return project
 }
 
-
 const getAll = async (filter = { _destroy: false }, sort = { created_at: -1 }, options = {}) => {
   if (!filter || typeof filter !== 'object') {
     throw new ApiError(StatusCodes.BAD_REQUEST, MESSAGES.INVALID_FILTER)
@@ -46,7 +44,6 @@ const getAll = async (filter = { _destroy: false }, sort = { created_at: -1 }, o
   return projects
 }
 
-
 const update = async (projectId, updateData, options = {}) => {
   const project = await projectModel.findById(projectId).session(options.session || null)
   if (!project || project._destroy) {
@@ -59,7 +56,6 @@ const update = async (projectId, updateData, options = {}) => {
     .populate('members.project_role_id', 'name')
     .exec()
 }
-
 
 const addMember = async (projectId, memberData, options = {}) => {
   const project = await projectModel.findById(projectId).session(options.session || null)
@@ -91,7 +87,7 @@ const removeMember = async (projectId, userId, options = {}) => {
         .populate('created_by', 'name email')
         .populate('members.user_id', 'name email')
         .populate('members.project_role_id', 'name')
-        .execPopulate(),
+        .execPopulate()
     )
 }
 
@@ -104,7 +100,7 @@ const updateMemberRole = async (projectId, userId, projectRoleId, session = null
     .findOneAndUpdate(
       { _id: projectId, 'members.user_id': userId },
       { $set: { 'members.$.project_role_id': projectRoleId } },
-      { new: true, session },
+      { new: true, session }
     )
     .populate('created_by', 'name email')
     .populate('members.user_id', 'name email')
@@ -118,11 +114,13 @@ const updateMemberRole = async (projectId, userId, projectRoleId, session = null
 
 const checkUserPermission = async (projectId, userId, permissionName = null) => {
   // Tìm project chứa user này
-  const project = await projectModel.findOne({
-    _id: projectId,
-    'members.user_id': userId,
-    _destroy: false,
-  }).lean()
+  const project = await projectModel
+    .findOne({
+      _id: projectId,
+      'members.user_id': userId,
+      _destroy: false,
+    })
+    .lean()
 
   if (!project) {
     throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
@@ -130,22 +128,24 @@ const checkUserPermission = async (projectId, userId, permissionName = null) => 
 
   // Lấy tất cả roles của user trong project
   const memberRoles = project.members
-    .filter((m) => m.user_id.toString() === userId.toString())
-    .map((m) => m.project_role_id)
+    .filter(m => m.user_id.toString() === userId.toString())
+    .map(m => m.project_role_id)
 
   if (memberRoles.length === 0) {
     return false
   }
 
   // Kiểm tra nếu user là owner → pass ngay
-  const ownerRole = await projectRolesModel.findOne(
-    {
-      _id: { $in: memberRoles },
-      name: 'owner',
-      _destroy: false,
-    },
-    { _id: 1 },
-  ).lean()
+  const ownerRole = await projectRolesModel
+    .findOne(
+      {
+        _id: { $in: memberRoles },
+        name: 'owner',
+        _destroy: false,
+      },
+      { _id: 1 }
+    )
+    .lean()
 
   if (ownerRole) {
     return true
@@ -157,14 +157,16 @@ const checkUserPermission = async (projectId, userId, permissionName = null) => 
   }
 
   const permissionId = await getPermissionId(permissionName)
-  const role = await projectRolesModel.findOne(
-    {
-      _id: { $in: memberRoles },
-      permissions: permissionId,
-      _destroy: false,
-    },
-    { _id: 1 },
-  ).lean()
+  const role = await projectRolesModel
+    .findOne(
+      {
+        _id: { $in: memberRoles },
+        permissions: permissionId,
+        _destroy: false,
+      },
+      { _id: 1 }
+    )
+    .lean()
 
   if (!role) {
     return false
@@ -179,16 +181,19 @@ const checkUserPermission = async (projectId, userId, permissionName = null) => 
   return true
 }
 
-
 const softDelete = async (projectId, options = {}) => {
   const project = await projectModel.findById(projectId).session(options.session || null)
   if (!project || project._destroy) {
     return false
   }
-  await projectModel.findByIdAndUpdate(projectId, {
-    _destroy: true,
-    deleted_at: new Date(),
-  }, options)
+  await projectModel.findByIdAndUpdate(
+    projectId,
+    {
+      _destroy: true,
+      deleted_at: new Date(),
+    },
+    options
+  )
   return true
 }
 
@@ -202,7 +207,43 @@ const updateFreeMode = async (projectId, freeModeValue, options = {}) => {
   return project
 }
 
+const addColumn = async (projectId, columnId, options = {}) => {
+  const project = await projectModel.findById(projectId).session(options.session || null)
+  if (!project || project._destroy) {
+    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
+  }
+
+  project.columns = project.columns.filter(col => col.toString() !== columnId.toString())
+  await project.save(options)
+  return project
+}
+
+const removeColumn = async (projectId, columnId, options = {}) => {
+  const project = await projectModel.findById(projectId).session(options.session || null)
+  if (!project || project._destroy) {
+    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
+  }
+  project.columns = project.columns.filter(col => col.toString() !== columnId.toString())
+  await project.save(options)
+  return project
+}
+
+const findById = async (id, options = {}) => {
+  const project = await projectModel
+    .findById(id)
+    .session(options.session || null)
+    .lean()
+    .exec()
+  if (!project || project._destroy) {
+    return null
+  }
+
+  return project
+}
+
 export const projectRepository = {
+  addColumn,
+  removeColumn,
   createNew,
   findOneById,
   getAll,
@@ -213,4 +254,5 @@ export const projectRepository = {
   updateMemberRole,
   checkUserPermission,
   updateFreeMode,
+  findById,
 }
