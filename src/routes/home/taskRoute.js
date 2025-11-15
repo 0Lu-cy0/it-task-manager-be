@@ -6,46 +6,77 @@ import { authMiddleware } from '~/middlewares/authMiddleware'
 
 const router = express.Router()
 
-// Apply authentication middleware to all task routes
 router.use(authMiddleware.isAuthenticated)
 
-// Task CRUD routes
-// Láy thông tin của tất cả các task
+// ============== TASK CRUD ==============
+
+// Lấy danh sách tất cả tasks (có thể filter bằng query params)
+// GET /tasks?projectId=xxx&status=xxx
 router.get('/', taskController.getTasks)
-// Lấy thông tin task theo id
-router.get('/:projectId/:id',
+
+// Lấy task cụ thể theo ID
+// GET /tasks/projects/:projectId/:id
+router.get(
+  '/projects/:projectId/:id',
   projectMiddleware.checkProjectPermission('view_task'),
-  taskController.getTaskById)
-// Tạo task mới
-router.post('/:projectId',
+  taskController.getTaskById
+)
+
+// Tạo task mới trong project
+// POST /tasks/projects/:projectId
+router.post(
+  '/projects/:projectId',
   taskMiddleware.validateCreate,
   projectMiddleware.checkProjectPermission('create_task'),
-  taskController.createTask)
-// Cập nhật task
-router.put('/:projectId/:id',
+  taskController.createTask
+)
+
+// Cập nhật thông tin task
+// PUT /tasks/projects/:projectId/:id
+router.put(
+  '/projects/:projectId/:id',
   taskMiddleware.validateUpdate,
   projectMiddleware.checkProjectPermission('edit_task'),
-  taskController.updateTask)
-// Xóa task
-router.delete('/:projectId/:id',
-  projectMiddleware.checkProjectPermission('delete_task'),
-  taskController.deleteTask)
+  taskController.updateTask
+)
 
-// Gán thành viên dự án vào task
-router.post('/:projectId/:id/assign',
+// Xóa task
+// DELETE /tasks/projects/:projectId/:id
+router.delete(
+  '/projects/:projectId/:id',
+  projectMiddleware.checkProjectPermission('delete_task'),
+  taskController.deleteTask
+)
+
+// ============== TASK ASSIGNMENTS ==============
+
+// Gán thành viên vào task
+// POST /tasks/projects/:projectId/:id/assignments (RESTful: resource là assignments)
+router.post(
+  '/projects/:projectId/:id/assignments',
   projectMiddleware.checkProjectPermission('assign_task'),
   taskMiddleware.validateAssign,
-  taskController.assignTask)
-// Gỡ thành viên dự án ra khỏi task
-router.post('/:projectId/:id/unassign',
+  taskController.assignTask
+)
+
+// Gỡ thành viên khỏi task
+// DELETE /tasks/projects/:projectId/:id/assignments (RESTful: DELETE assignments)
+router.delete(
+  '/projects/:projectId/:id/assignments',
   projectMiddleware.checkProjectPermission('unassign_task'),
   taskMiddleware.validateUnassign,
-  taskController.unassignTask)
-// Điều chỉnh trạng thái của task
-router.patch('/:projectId/:id/status',
+  taskController.unassignTask
+)
+
+// ============== TASK STATUS ==============
+
+// Cập nhật trạng thái task
+// PATCH /tasks/projects/:projectId/:id/status (RESTful: PATCH một field cụ thể)
+router.patch(
+  '/projects/:projectId/:id/status',
   projectMiddleware.checkProjectPermission('status_task'),
   taskMiddleware.validateStatusUpdate,
-  taskController.updateTaskStatus)
+  taskController.updateTaskStatus
+)
 
 export const APIs_task = router
-

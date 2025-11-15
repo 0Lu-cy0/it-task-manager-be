@@ -1,26 +1,50 @@
 import { inviteModel } from '~/models/inviteModel'
 import { projectModel } from '~/models/projectModel'
 import { projectRolesModel } from '~/models/projectRolesModel'
-import { userModel } from '~/models/authModel'
+import { authModel } from '~/models/authModel'
 
 export const inviteRepository = {
-  async createInvite(projectId, userId, email, roleId, inviteToken, expiresAt) {
+  async createInvite(
+    projectId,
+    userId,
+    email,
+    roleId,
+    inviteToken,
+    expiresAt,
+    isPermanent = false,
+    session = null
+  ) {
     const nomalizedEmail = email ? email.toLowerCase() : null
 
-    //Kt xem có lời mời nào ở trạg thái pending trong prj chưa
-    const exitingIntive = await inviteModel.findOne({
-      project_id: projectId,
-      status: 'pending',
-      email: nomalizedEmail,
-    })
-
-    //Nếu đã có lời mời, cập nhật tg hết hạn
-    if (exitingIntive) {
-      exitingIntive.expires_at = expiresAt
-      exitingIntive.invited_by = userId
-      await exitingIntive.save()
-      return exitingIntive
+    // Nếu là permanent invite, kiểm tra xem đã có chưa
+    if (isPermanent) {
+      const query = inviteModel.findOne({
+        project_id: projectId,
+        is_permanent: true,
+      })
+      const existingPermanentInvite = session ? await query.session(session) : await query
+      if (existingPermanentInvite) {
+        return existingPermanentInvite
+      }
     }
+
+    //Kt xem có lời mời nào ở trạg thái pending trong prj chưa (chỉ cho non-permanent)
+    if (!isPermanent && email) {
+      const query = inviteModel.findOne({
+        project_id: projectId,
+        status: 'pending',
+        email: nomalizedEmail,
+      })
+      const exitingIntive = session ? await query.session(session) : await query
+
+      //Nếu đã có lời mời, cập nhật tg hết hạn
+      if (exitingIntive) {
+        exitingIntive.expires_at = expiresAt
+        exitingIntive.invited_by = userId
+        return session ? await exitingIntive.save({ session }) : await exitingIntive.save()
+      }
+    }
+
     const invite = new inviteModel({
       project_id: projectId,
       email: email ? email.toLowerCase() : null,
@@ -28,8 +52,9 @@ export const inviteRepository = {
       invited_by: userId,
       role_id: roleId,
       expires_at: expiresAt,
+      is_permanent: isPermanent,
     })
-    return await invite.save()
+    return session ? await invite.save({ session }) : await invite.save()
   },
 
   async findInviteByToken(token) {
@@ -54,7 +79,7 @@ export const inviteRepository = {
     return await inviteModel.findByIdAndUpdate(
       inviteId,
       { status, updated_at: Date.now() },
-      { new: true },
+      { new: true }
     )
   },
 
@@ -66,15 +91,25 @@ export const inviteRepository = {
       .select('email invite_token status created_at expires_at')
   },
 
-  async findProject(projectId) {
-    return await projectModel.findById(projectId)
+  async findProject(projectId, session = null) {
+    const query = projectModel.findOne({ _id: projectId, _destroy: false })
+    return session ? await query.session(session) : await query
   },
 
-  async findRole(projectId, roleName) {
-    return await projectRolesModel.findOne({ project_id: projectId, name: roleName })
+  async findRole(projectId, roleName, session = null) {
+    const query = projectRolesModel.findOne({
+      project_id: projectId,
+      name: roleName,
+      _destroy: false,
+    })
+    return session ? await query.session(session) : await query
   },
 
   async findUserByEmail(email) {
-    return await userModel.findOne({ email: email.toLowerCase() })
+    return await authModel.findOne({ email: email.toLowerCase() })
+  },
+
+  async findUserById(userId) {
+    return await authModel.findById(userId).lean()
   },
 }

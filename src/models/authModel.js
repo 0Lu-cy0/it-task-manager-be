@@ -57,7 +57,7 @@ const USER_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema(
       default: false,
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 )
 
 export const authModel = mongoose.model(USER_COLLECTION_NAME, USER_COLLECTION_SCHEMA_MONGOOSE)

@@ -4,12 +4,13 @@ import { taskRepository } from '~/repository/taskRepository'
 import ApiError from '~/utils/APIError'
 import { StatusCodes } from 'http-status-codes'
 import { projectRepository } from '~/repository/projectRepository'
+import { MESSAGES } from '~/constants/messages'
 
 export const columnService = {
   async getColumnsByProject(projectId) {
     // Kiểm tra project tồn tại
     const project = await projectRepository.findOneById(projectId)
-    if (!project) throw new ApiError(StatusCodes.NOT_FOUND, 'Project not found')
+    if (!project) throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
 
     // Lấy tất cả columns của project
     const columns = await columnRepository.findByProjectId(projectId)
@@ -43,7 +44,7 @@ export const columnService = {
   async createColumn(projectId, userId, data) {
     // kiểm tra project tồn tại
     const project = await projectRepository.findById(projectId)
-    if (!project) throw new ApiError(StatusCodes.NOT_FOUND, 'Project not found')
+    if (!project) throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
 
     const column = await columnRepository.create({
       ...data,
@@ -59,7 +60,7 @@ export const columnService = {
 
   async getColumnWithCards(columnId) {
     const column = await columnRepository.findById(columnId)
-    if (!column) throw new ApiError(StatusCodes.NOT_FOUND, 'Column not found')
+    if (!column) throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.COLUMN_NOT_FOUND)
 
     const cards = await taskRepository.findByColumnId(columnId)
 
@@ -82,7 +83,7 @@ export const columnService = {
 
   async updateColumn(columnId, data) {
     const column = await columnRepository.updateById(columnId, data)
-    if (!column) throw new ApiError(StatusCodes.NOT_FOUND, 'Column not found')
+    if (!column) throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.COLUMN_NOT_FOUND)
     return column
   },
 
@@ -91,7 +92,7 @@ export const columnService = {
     session.startTransaction()
     try {
       const column = await columnRepository.findById(columnId)
-      if (!column) throw new ApiError(StatusCodes.NOT_FOUND, 'Column not found')
+      if (!column) throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.COLUMN_NOT_FOUND)
 
       // xóa tất cả tasks trong column
       await taskRepository.deleteByColumnId(columnId, { session })

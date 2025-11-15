@@ -51,6 +51,13 @@ const PROJECT_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema(
     last_activity: { type: Date, default: Date.now, index: true },
     _destroy: { type: Boolean, default: false },
     free_mode: { type: Boolean, default: false },
+    visibility: {
+      type: String,
+      required: true,
+      enum: ['private', 'public'],
+      default: 'private',
+      index: true,
+    },
   },
   { timestamps: true }
 )

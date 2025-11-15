@@ -1,68 +1,46 @@
 import express from 'express'
-import rateLimit from 'express-rate-limit' // Thêm thư viện này nếu chưa có
+import rateLimit from 'express-rate-limit'
 import { projectRoleController } from '~/controllers/projectRolesController'
 import { authMiddleware } from '~/middlewares/authMiddleware'
 import { projectRoleMiddleware } from '~/middlewares/projectRoleMiddleware'
 
 const router = express.Router()
 
-// Thêm rate limiting (giới hạn 100 request mỗi 15 phút)
+// Rate limiting (100 requests per 15 minutes)
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 phút
-  max: 100, // Giới hạn 100 request mỗi IP
+  windowMs: 15 * 60 * 1000,
+  max: 100,
 })
 router.use(limiter)
+router.use(authMiddleware.isAuthenticated)
+
+// ============== PROJECT ROLE PERMISSIONS ==============
+
+// Lấy danh sách permissions của một role
+// GET /project-roles/projects/:projectId/roles/:roleId/permissions
+router.get(
+  '/projects/:projectId/roles/:roleId/permissions',
+  projectRoleMiddleware.checkProjectPermission('view_project'),
+  projectRoleMiddleware.validateGetPermissions,
+  projectRoleController.getPermissions
+)
 
 // Thêm permission vào role
+// POST /project-roles/projects/:projectId/roles/:roleId/permissions
 router.post(
-  '/:projectId/roles/:roleId/permissions',
-  authMiddleware.verifyToken,
+  '/projects/:projectId/roles/:roleId/permissions',
   projectRoleMiddleware.checkProjectPermission('edit_permission_role'),
   projectRoleMiddleware.validateAddPermission,
-  projectRoleController.addPermission,
+  projectRoleController.addPermission
 )
 
 // Xóa permission khỏi role
+// DELETE /project-roles/projects/:projectId/roles/:roleId/permissions/:permissionId
 router.delete(
-  '/:projectId/roles/:roleId/permissions/:permissionId',
-  authMiddleware.verifyToken,
+  '/projects/:projectId/roles/:roleId/permissions/:permissionId',
   projectRoleMiddleware.checkProjectPermission('edit_permission_role'),
   projectRoleMiddleware.validateRemovePermission,
-  projectRoleController.removePermission,
+  projectRoleController.removePermission
 )
-
-// Lấy danh sách permission của role
-router.get(
-  '/:projectId/roles/:roleId/permissions',
-  authMiddleware.verifyToken,
-  projectRoleMiddleware.checkProjectPermission('view_project'),
-  projectRoleMiddleware.validateGetPermissions,
-  projectRoleController.getPermissions,
-)
-
-// // Giữ route từ file của bạn
-// router.get(
-//   '/projects/:projectId/roles',
-//   authMiddleware.verifyToken,
-//   projectRoleMiddleware.checkProjectPermission('view_project'),
-//   projectRoleController.getAll,
-// )
-
-// router.put(
-//   '/:projectId/roles/:id', // Sửa để bao gồm projectId, nhất quán hơn
-//   authMiddleware.verifyToken,
-//   projectRoleMiddleware.checkProjectPermission('change_member_role'),
-//   projectRoleMiddleware.validateUpdate,
-//   projectRoleController.update,
-// )
-//JKhoong phải gán mới mà là sửa, vì mặc định khi vào dự án là 1 user luôn có 1 role nhất định
-// Gán role cho member trong project
-// router.post(
-//   '/:projectId/members/:memberId/role',
-//   authMiddleware.verifyToken,
-//   projectRoleMiddleware.checkProjectPermission('change_member_role'),
-//   projectRoleMiddleware.validateAssignRole,
-//   projectRoleController.assignRole,
-// )
 
 export const APIs_project_roles = router

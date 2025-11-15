@@ -3,23 +3,15 @@ import { notificationModel } from '~/models/notificationModel'
 /**
  * Đánh dấu thông báo đã đọc
  */
-const markAsRead = async (notiId) => {
-  return await notificationModel.findByIdAndUpdate(
-    notiId,
-    { $set: { read: true } },
-    { new: true },
-  )
+const markAsRead = async notiId => {
+  return await notificationModel.findByIdAndUpdate(notiId, { $set: { read: true } }, { new: true })
 }
 
 /**
  * Xóa thông báo
  */
-const deleteNoti = async (notiId) => {
-  return await notificationModel.findByIdAndDelete(
-    notiId,
-    { read: true },
-    { new: true },
-  )
+const deleteNoti = async notiId => {
+  return await notificationModel.findByIdAndDelete(notiId, { read: true }, { new: true })
 }
 
 // Xóa nhiều thông báo
@@ -30,7 +22,7 @@ const deleteAllNoti = async () => {
 /**
  * Lấy thông tin chi tiết của noti theo ID
  */
-const getNotiById = async (notiId) => {
+const getNotiById = async notiId => {
   return await notificationModel
     .findById(notiId)
     .populate('user_id', 'username full_name avatar_url')
@@ -40,7 +32,7 @@ const getNotiById = async (notiId) => {
 /**
  * Tìm kiếm danh sách noti
  */
-const findNoti = async (userId) => {
+const findNoti = async userId => {
   return await notificationModel
     .find({ user_id: userId })
     .populate('user_id', 'username full_name avatar_url')

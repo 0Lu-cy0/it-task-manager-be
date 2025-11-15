@@ -4,24 +4,34 @@ import { authMiddleware } from '~/middlewares/authMiddleware'
 
 const router = express.Router()
 
-// Apply authentication middleware to all column routes
 router.use(authMiddleware.isAuthenticated)
 
-// POST /move-card - di chuyển card (đặt trước các route động)
-router.post('/move-card', columnController.moveCard)
+// ============== PROJECT COLUMNS ==============
 
-// POST /:projectId - tạo column mới cho project
-router.post('/:projectId', columnController.create)
+// Lấy tất cả columns của một project
+// GET /columns/projects/:projectId (RESTful: đặt trước routes động)
+router.get('/projects/:projectId', columnController.getColumnsByProject)
 
-// GET /:columnId - lấy column kèm cards
+// Tạo column mới cho project
+// POST /columns/projects/:projectId
+router.post('/projects/:projectId', columnController.create)
+
+// ============== COLUMN OPERATIONS ==============
+
+// Di chuyển card giữa các columns
+// PATCH /columns/cards/move (RESTful: PATCH để update vị trí)
+router.patch('/cards/move', columnController.moveCard)
+
+// Lấy column cụ thể kèm cards
+// GET /columns/:columnId
 router.get('/:columnId', columnController.getColumn)
 
-// PUT /:columnId - cập nhật column
+// Cập nhật thông tin column
+// PUT /columns/:columnId
 router.put('/:columnId', columnController.update)
 
-// DELETE /:columnId - xóa column
+// Xóa column
+// DELETE /columns/:columnId
 router.delete('/:columnId', columnController.delete)
-
-router.get('/projects/:projectId', columnController.getColumnsByProject)
 
 export const APIs_column = router
