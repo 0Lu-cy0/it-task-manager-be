@@ -349,6 +349,27 @@ const getProjectRoles = async projectId => {
   return await projectRolesModel.find({ project_id: projectId, _destroy: false }).lean()
 }
 
+const getProjectMembers = async projectId => {
+  // Validate project exists và lấy thông tin members
+  const project = await projectRepository.findOneById(projectId)
+
+  if (!project || !project.members || project.members.length === 0) {
+    return []
+  }
+
+  // Transform members data để trả về thông tin cần thiết
+  const members = project.members.map(member => ({
+    user_id: member.user_id._id,
+    name: member.user_id.name,
+    email: member.user_id.email,
+    role: member.project_role_id.name,
+    role_id: member.project_role_id._id,
+    joined_at: member.joined_at,
+  }))
+
+  return members
+}
+
 const getProjectLead = async projectId => {
   const project = await projectRepository.findOneById(projectId)
   if (!project || !project.members) {
@@ -467,6 +488,7 @@ export const projectService = {
   removeProjectMember,
   updateProjectMemberRole,
   getProjectRoles,
+  getProjectMembers,
   getProjectLead,
   deleteProject,
   verifyProjectPermission,

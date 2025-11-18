@@ -52,9 +52,275 @@ tags:
   - name: Notifications
     description: Hệ thống thông báo
 
-# Import all component definitions
+# Component definitions
 components:
-  $ref: "./components.yaml#/components"
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "JWT token để xác thực. Format: Bearer {token}"
+
+  schemas:
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "64f8a1b2c3d4e5f6a7b8c9d0"
+        username:
+          type: string
+          example: "john_doe"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        full_name:
+          type: string
+          example: "John Doe"
+        avatar:
+          type: string
+          example: "https://example.com/avatar.jpg"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Project:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "64f8a1b2c3d4e5f6a7b8c9d0"
+        name:
+          type: string
+          example: "Website Redesign"
+        description:
+          type: string
+          example: "Redesign company website with modern UI/UX"
+        status:
+          type: string
+          enum: [planning, in_progress, testing, completed]
+          example: "in_progress"
+        priority:
+          type: string
+          enum: [low, medium, high]
+          example: "high"
+        start_date:
+          type: string
+          format: date
+          example: "2024-01-15"
+        end_date:
+          type: string
+          format: date
+          example: "2024-03-15"
+        created_by:
+          type: string
+          example: "64f8a1b2c3d4e5f6a7b8c9d0"
+        members:
+          type: array
+          items:
+            type: object
+            properties:
+              user_id:
+                type: string
+              project_role_id:
+                type: string
+              joined_at:
+                type: string
+                format: date-time
+        member_count:
+          type: number
+          example: 5
+        free_mode:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Task:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "64f8a1b2c3d4e5f6a7b8c9d0"
+        title:
+          type: string
+          example: "Design homepage mockup"
+        description:
+          type: string
+          example: "Create wireframes and mockups for the new homepage"
+        status:
+          type: string
+          enum: [todo, in_progress, testing, completed]
+          example: "todo"
+        priority:
+          type: string
+          enum: [low, medium, high]
+          example: "medium"
+        project_id:
+          type: string
+          example: "64f8a1b2c3d4e5f6a7b8c9d0"
+        created_by:
+          type: string
+          example: "64f8a1b2c3d4e5f6a7b8c9d0"
+        due_date:
+          type: string
+          format: date
+          example: "2024-02-01"
+        completed_at:
+          type: string
+          format: date-time
+        assignees:
+          type: array
+          items:
+            type: object
+            properties:
+              user_id:
+                type: string
+              role_id:
+                type: string
+              assigned_by:
+                type: string
+              assigned_at:
+                type: string
+                format: date-time
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["design", "frontend"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Notification:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "64f8a1b2c3d4e5f6a7b8c9d0"
+        user_id:
+          type: string
+          example: "64f8a1b2c3d4e5f6a7b8c9d0"
+        title:
+          type: string
+          example: "New task assigned"
+        message:
+          type: string
+          example: "You have been assigned to task: Design homepage mockup"
+        type:
+          type: string
+          enum: [task_assigned, project_invite, task_completed, project_update]
+          example: "task_assigned"
+        is_read:
+          type: boolean
+          example: false
+        related_id:
+          type: string
+          example: "64f8a1b2c3d4e5f6a7b8c9d0"
+        createdAt:
+          type: string
+          format: date-time
+
+    ApiResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success, error]
+          example: "success"
+        message:
+          type: string
+          example: "Operation completed successfully"
+        data:
+          type: object
+        errors:
+          type: array
+          items:
+            type: object
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "error"
+        message:
+          type: string
+          example: "Validation failed"
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+  responses:
+    UnauthorizedError:
+      description: Access token is missing or invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            status: "error"
+            message: "Unauthorized access"
+
+    ForbiddenError:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            status: "error"
+            message: "Forbidden: Insufficient permissions"
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            status: "error"
+            message: "Resource not found"
+
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            status: "error"
+            message: "Validation failed"
+            errors:
+              - field: "email"
+                message: "Email is required"
+
+    RateLimitError:
+      description: Too many requests
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            status: "error"
+            message: "Too many requests, please try again later"
 
 # Import all path definitions
 paths:

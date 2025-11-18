@@ -56,6 +56,12 @@ router.delete(
 router.get('/:projectId/roles', projectController.getProjectRoles)
 
 /**
+ * Lấy danh sách thành viên của dự án (public - ai cũng có thể xem)
+ * GET /projects/:projectId/members
+ */
+router.get('/:projectId/members', projectController.getProjectMembers)
+
+/**
  * Cập nhật vai trò của thành viên trong dự án
  * PUT /projects/:projectId/members/roles (RESTful: resource là members/roles)
  */

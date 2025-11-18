@@ -158,6 +158,21 @@ const getProjectRoles = async (req, res, next) => {
   }
 }
 
+const getProjectMembers = async (req, res, next) => {
+  try {
+    const { projectId } = req.params
+    const result = await projectService.getProjectMembers(projectId)
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Danh sách thành viên được lấy thành công',
+      data: result,
+    })
+  } catch (error) {
+    logger.error(`Lỗi khi lấy danh sách thành viên của dự án ${req.params.projectId}: ${error.message}`)
+    next(error)
+  }
+}
+
 const getProjectLead = async (req, res, next) => {
   try {
     const { id } = req.params
@@ -204,6 +219,7 @@ export const projectController = {
   removeMember,
   updateMemberRole,
   getProjectRoles,
+  getProjectMembers,
   getProjectLead,
   toggleFreeMode,
 }
