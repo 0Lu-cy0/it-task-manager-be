@@ -14,6 +14,16 @@ const limiter = rateLimit({
 router.use(limiter)
 router.use(authMiddleware.isAuthenticated)
 
+// ============== PROJECT ROLES ==============
+
+// Lấy danh sách tất cả roles trong project
+// GET /project-roles/projects/:projectId/roles
+router.get(
+  '/projects/:projectId/roles',
+  projectRoleMiddleware.checkProjectPermission('view_project'),
+  projectRoleController.getAll
+)
+
 // ============== PROJECT ROLE PERMISSIONS ==============
 
 // Lấy danh sách permissions của một role
