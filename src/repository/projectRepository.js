@@ -113,7 +113,19 @@ const updateMemberRole = async (projectId, userId, projectRoleId, session = null
 }
 
 const checkUserPermission = async (projectId, userId, permissionName = null) => {
-  // Tìm project chứa user này
+  // Kiểm tra project có tồn tại không (không check member)
+  const projectExists = await projectModel
+    .findOne({
+      _id: projectId,
+      _destroy: false,
+    })
+    .lean()
+
+  if (!projectExists) {
+    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
+  }
+
+  // Tìm project chứa user này (check member)
   const project = await projectModel
     .findOne({
       _id: projectId,
@@ -122,8 +134,9 @@ const checkUserPermission = async (projectId, userId, permissionName = null) => 
     })
     .lean()
 
+  // Nếu user không phải member → return false (để middleware throw FORBIDDEN)
   if (!project) {
-    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
+    return false
   }
 
   // Lấy tất cả roles của user trong project

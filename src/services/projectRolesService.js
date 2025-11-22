@@ -11,7 +11,11 @@ const logger = winston.createLogger({
 })
 
 const checkUserPermission = async (projectId, userId, role, targetRoleName) => {
-  const isOwner = await projectService.verifyProjectPermission(projectId, userId, 'owner_permission')
+  const isOwner = await projectService.verifyProjectPermission(
+    projectId,
+    userId,
+    'owner_permission'
+  )
   if (isOwner) {
     return true // Owner bypass tất cả
   }
@@ -19,7 +23,7 @@ const checkUserPermission = async (projectId, userId, role, targetRoleName) => {
     if (['owner', 'lead'].includes(targetRoleName)) {
       throw new ApiError(StatusCodes.FORBIDDEN, MESSAGES.FORBIDDEN_MODIFY_OWNER_OR_LEAD)
     }
-    return true // Lead có thể chỉnh sửa member/viewer
+    return true // Lead có thể chỉnh sửa member
   }
   throw new ApiError(StatusCodes.FORBIDDEN, MESSAGES.FORBIDDEN_ASSIGN_ROLE)
 }
@@ -30,14 +34,18 @@ const addPermissionToRole = async (roleId, permissionId, currentUserId) => {
     let updatedRole
     await session.withTransaction(async () => {
       if (!mongoose.Types.ObjectId.isValid(roleId)) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, 'Định dạng roleId không hợp lệ')
+        throw new ApiError(StatusCodes.BAD_REQUEST, MESSAGES.ROLE_ID_INVALID_FORMAT)
       }
       const role = await projectRoleRepo.findRoleById(roleId)
       if (!role) {
         throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.ROLE_NOT_FOUND)
       }
       if (role.name === 'owner') {
-        const isOwner = await projectService.verifyProjectPermission(role.project_id, currentUserId, 'owner_permission')
+        const isOwner = await projectService.verifyProjectPermission(
+          role.project_id,
+          currentUserId,
+          'owner_permission'
+        )
         if (!isOwner) {
           throw new ApiError(StatusCodes.FORBIDDEN, MESSAGES.FORBIDDEN_MODIFY_OWNER)
         }
@@ -69,17 +77,25 @@ const removePermissionFromRole = async (roleId, permissionId, currentUserId) => 
         throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.ROLE_NOT_FOUND)
       }
       if (role.name === 'owner') {
-        const isOwner = await projectService.verifyProjectPermission(role.project_id, currentUserId, 'owner_permission')
+        const isOwner = await projectService.verifyProjectPermission(
+          role.project_id,
+          currentUserId,
+          'owner_permission'
+        )
         if (!isOwner) {
           throw new ApiError(StatusCodes.FORBIDDEN, MESSAGES.FORBIDDEN_MODIFY_OWNER)
         }
       }
-      updatedRole = await projectRoleRepo.removePermissionFromRole(roleId, permissionId, { session })
+      updatedRole = await projectRoleRepo.removePermissionFromRole(roleId, permissionId, {
+        session,
+      })
       if (!updatedRole) {
         throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.ROLE_NOT_FOUND)
       }
       await projectService.touch(role.project_id, new Date(), { session })
-      logger.info(`Permission ${permissionId} đã bị xóa từ role: ${roleId} bởi người dùng: ${currentUserId}`)
+      logger.info(
+        `Permission ${permissionId} đã bị xóa từ role: ${roleId} bởi người dùng: ${currentUserId}`
+      )
     })
     return updatedRole
   } catch (error) {
@@ -91,7 +107,7 @@ const removePermissionFromRole = async (roleId, permissionId, currentUserId) => 
   }
 }
 
-const getPermissionsOfRole = async (roleId) => {
+const getPermissionsOfRole = async roleId => {
   try {
     const permissions = await projectRoleRepo.getPermissionsOfRole(roleId)
     if (!permissions.length) {
@@ -104,7 +120,7 @@ const getPermissionsOfRole = async (roleId) => {
   }
 }
 
-const getProjectRoles = async (projectId) => {
+const getProjectRoles = async projectId => {
   try {
     const roles = await projectRoleRepo.findByProjectId(projectId)
     return roles
@@ -124,7 +140,11 @@ const updateProjectRole = async (id, data, currentUserId) => {
         throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.ROLE_NOT_FOUND)
       }
       if (role.name === 'owner') {
-        const isOwner = await projectService.verifyProjectPermission(role.project_id, currentUserId, 'owner_permission')
+        const isOwner = await projectService.verifyProjectPermission(
+          role.project_id,
+          currentUserId,
+          'owner_permission'
+        )
         if (!isOwner) {
           throw new ApiError(StatusCodes.FORBIDDEN, MESSAGES.FORBIDDEN_MODIFY_OWNER)
         }
@@ -148,7 +168,10 @@ const assignRoleToMember = async (projectId, memberId, roleId, currentUserId) =>
   try {
     let updatedMember
     await session.withTransaction(async () => {
-      const currentMember = await projectRoleRepo.findMemberByUserAndProject(currentUserId, projectId)
+      const currentMember = await projectRoleRepo.findMemberByUserAndProject(
+        currentUserId,
+        projectId
+      )
       if (!currentMember) {
         throw new ApiError(StatusCodes.FORBIDDEN, MESSAGES.NOT_PROJECT_MEMBER)
       }
@@ -168,7 +191,9 @@ const assignRoleToMember = async (projectId, memberId, roleId, currentUserId) =>
         throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.MEMBER_UPDATE_FAILED)
       }
       await projectService.touch(projectId, new Date(), { session })
-      logger.info(`Role ${roleId} assigned to member ${memberId} in project ${projectId} by user ${currentUserId}`)
+      logger.info(
+        `Role ${roleId} assigned to member ${memberId} in project ${projectId} by user ${currentUserId}`
+      )
     })
     return updatedMember
   } catch (error) {

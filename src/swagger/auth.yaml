@@ -36,34 +36,34 @@ paths:
                   maxLength: 50
                   example: "John Doe"
       responses:
-        '201':
+        "201":
           description: Đăng ký thành công
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: "#/components/schemas/ApiResponse"
                   - type: object
                     properties:
                       data:
                         type: object
                         properties:
                           user:
-                            $ref: '#/components/schemas/User'
+                            $ref: "#/components/schemas/User"
                           accessToken:
                             type: string
                           refreshToken:
                             type: string
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '409':
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "409":
           description: Email hoặc username đã tồn tại
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '429':
-          $ref: '#/components/responses/RateLimitError'
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimitError"
 
   /auth/login:
     post:
@@ -89,34 +89,34 @@ paths:
                   type: string
                   example: "password123"
       responses:
-        '200':
+        "200":
           description: Đăng nhập thành công
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: "#/components/schemas/ApiResponse"
                   - type: object
                     properties:
                       data:
                         type: object
                         properties:
                           user:
-                            $ref: '#/components/schemas/User'
+                            $ref: "#/components/schemas/User"
                           accessToken:
                             type: string
                           refreshToken:
                             type: string
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
           description: Email hoặc mật khẩu không đúng
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '429':
-          $ref: '#/components/responses/RateLimitError'
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimitError"
 
   /auth/reset-password/request:
     post:
@@ -138,18 +138,18 @@ paths:
                   format: email
                   example: "john@example.com"
       responses:
-        '200':
+        "200":
           description: Email reset đã được gửi
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '404':
-          $ref: '#/components/responses/NotFoundError'
-        '429':
-          $ref: '#/components/responses/RateLimitError'
+                $ref: "#/components/schemas/ApiResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/RateLimitError"
 
   /auth/reset-password/confirm:
     post:
@@ -175,22 +175,22 @@ paths:
                   minLength: 6
                   example: "newpassword123"
       responses:
-        '200':
+        "200":
           description: Mật khẩu đã được đặt lại
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
+                $ref: "#/components/schemas/ApiResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
           description: Token không hợp lệ hoặc đã hết hạn
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '429':
-          $ref: '#/components/responses/RateLimitError'
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimitError"
 
   /auth/me:
     get:
@@ -201,19 +201,19 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: Thông tin người dùng
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: "#/components/schemas/ApiResponse"
                   - type: object
                     properties:
                       data:
-                        $ref: '#/components/schemas/User'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
+                        $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
 
     put:
       tags:
@@ -243,27 +243,27 @@ paths:
                   type: string
                   example: "https://example.com/new-avatar.jpg"
       responses:
-        '200':
+        "200":
           description: Cập nhật thành công
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: "#/components/schemas/ApiResponse"
                   - type: object
                     properties:
                       data:
-                        $ref: '#/components/schemas/User'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '409':
+                        $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "409":
           description: Username đã tồn tại
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   /auth/me/password:
     put:
@@ -291,20 +291,20 @@ paths:
                   minLength: 6
                   example: "newpassword123"
       responses:
-        '200':
+        "200":
           description: Đổi mật khẩu thành công
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
+                $ref: "#/components/schemas/ApiResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
           description: Mật khẩu hiện tại không đúng
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   /auth/refresh:
     post:
@@ -325,13 +325,13 @@ paths:
                   type: string
                   example: "refresh_token_here"
       responses:
-        '200':
+        "200":
           description: Token mới được tạo thành công
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: "#/components/schemas/ApiResponse"
                   - type: object
                     properties:
                       data:
@@ -341,16 +341,16 @@ paths:
                             type: string
                           refreshToken:
                             type: string
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
           description: Refresh token không hợp lệ
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '429':
-          $ref: '#/components/responses/RateLimitError'
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimitError"
 
   /auth/logout:
     post:
@@ -361,11 +361,11 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: Đăng xuất thành công
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
+                $ref: "#/components/schemas/ApiResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"

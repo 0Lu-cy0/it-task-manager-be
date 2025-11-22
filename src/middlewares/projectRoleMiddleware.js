@@ -2,18 +2,23 @@ import { projectRoleValidation } from '~/validations/projectRolesValidation'
 import { ApiError } from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 import { projectService } from '~/services/projectService'
+import { MESSAGES } from '~/constants/messages'
 
-const checkProjectPermission = (permission) => {
+const checkProjectPermission = permission => {
   return async (req, res, next) => {
     try {
       const userId = req.user._id
       const projectId = req.params.projectId
 
-      const hasPermission = await projectService.verifyProjectPermission(projectId, userId, permission)
+      const hasPermission = await projectService.verifyProjectPermission(
+        projectId,
+        userId,
+        permission
+      )
       console.log('✅ [checkProjectPermission] hasPermission:', hasPermission)
 
       if (!hasPermission) {
-        return next(new ApiError(StatusCodes.FORBIDDEN, 'Không có quyền thực hiện hành động này'))
+        return next(new ApiError(StatusCodes.FORBIDDEN, MESSAGES.FORBIDDEN))
       }
 
       next()
@@ -22,7 +27,6 @@ const checkProjectPermission = (permission) => {
     }
   }
 }
-
 
 const validateAddPermission = async (req, res, next) => {
   try {

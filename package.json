@@ -17,7 +17,10 @@
     "meili": "node scripts/start-meili-powershell.js",
     "dev": "concurrently -k -n \"MEILI,SERVER\" -c \"cyan,green\" \"yarn run meili\" \"cross-env BUILD_MODE=dev nodemon --exec babel-node ./src/server.js\"",
     "setup": "yarn run download-meili && yarn run dev",
-    "debug": "node inspect ./src/server.js"
+    "debug": "node inspect ./src/server.js",
+    "migrate:check-viewer": "babel-node src/scripts/check-viewer-role.js",
+    "migrate:remove-viewer": "babel-node src/scripts/migrate-remove-viewer-role.js",
+    "migrate:cleanup-orphaned": "babel-node src/scripts/cleanup-orphaned-viewer-roles.js"
   },
   "dependencies": {
     "@babel/runtime": "^7.22.10",
@@ -56,5 +59,6 @@
     "eslint-plugin-unused-imports": "^4.1.4",
     "nodemon": "^3.0.1",
     "prettier": "^3.6.2"
-  }
+  },
+  "packageManager": "yarn@4.9.4+sha512.7b1cb0b62abba6a537b3a2ce00811a843bea02bcf53138581a6ae5b1bf563f734872bd47de49ce32a9ca9dcaff995aa789577ffb16811da7c603dcf69e73750b"
 }

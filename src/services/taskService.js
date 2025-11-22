@@ -5,6 +5,7 @@ import { StatusCodes } from 'http-status-codes'
 import mongoose from 'mongoose'
 import { syncTaskToMeili, deleteTaskFromMeili } from '~/repository/searchRepository'
 import { columnRepository } from '~/repository/columnRepository'
+import { MESSAGES } from '~/constants/messages'
 
 const createTask = async data => {
   const session = await mongoose.startSession()
@@ -12,11 +13,11 @@ const createTask = async data => {
     let task
     await session.withTransaction(async () => {
       if (!data.created_by) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, 'created_by is required')
+        throw new ApiError(StatusCodes.BAD_REQUEST, MESSAGES.TASK_CREATED_BY_REQUIRED)
       }
       const project = await projectService.getProjectById(data.project_id)
       if (!project) {
-        throw new ApiError(StatusCodes.NOT_FOUND, 'Project not found')
+        throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
       }
       task = await taskRepository.createTask(data, { session })
 
@@ -42,7 +43,7 @@ const updateTask = async (taskId, updateData) => {
     await session.withTransaction(async () => {
       const task = await taskRepository.getTaskById(taskId)
       if (!task) {
-        throw new ApiError(StatusCodes.NOT_FOUND, 'Task not found')
+        throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.TASK_NOT_FOUND)
       }
       updatedTask = await taskRepository.updateTask(taskId, updateData, { session })
       await projectService.touch(task.project_id, updatedTask.updatedAt, { session })
@@ -64,7 +65,7 @@ const deleteTask = async taskId => {
     await session.withTransaction(async () => {
       task = await taskRepository.getTaskById(taskId)
       if (!task) {
-        throw new ApiError(StatusCodes.NOT_FOUND, 'Task not found')
+        throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.TASK_NOT_FOUND)
       }
 
       if (task.columnId) {
@@ -87,7 +88,7 @@ const deleteTask = async taskId => {
 const getTaskById = async taskId => {
   const task = await taskRepository.getTaskById(taskId)
   if (!task) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Task not found')
+    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.TASK_NOT_FOUND)
   }
   return task
 }
@@ -104,13 +105,13 @@ const assignTask = async (taskId, assignData) => {
     await session.withTransaction(async () => {
       const task = await taskRepository.getTaskById(taskId)
       if (!task) {
-        throw new ApiError(StatusCodes.NOT_FOUND, 'Task not found')
+        throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.TASK_NOT_FOUND)
       }
       const isAlreadyAssigned = task.assignees.some(
         a => a.user_id._id.toString() === assignData.user_id.toString()
       )
       if (isAlreadyAssigned) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, 'User is already assigned to this task')
+        throw new ApiError(StatusCodes.BAD_REQUEST, MESSAGES.TASK_USER_ALREADY_ASSIGNED)
       }
       updatedTask = await taskRepository.assignTask(taskId, assignData, { session })
       await projectService.touch(task.project_id, new Date(), { session })
@@ -132,13 +133,13 @@ const unassignTask = async (taskId, assignData) => {
     await session.withTransaction(async () => {
       const task = await taskRepository.getTaskById(taskId)
       if (!task) {
-        throw new ApiError(StatusCodes.NOT_FOUND, 'Task not found')
+        throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.TASK_NOT_FOUND)
       }
       const isAlreadyAssigned = task.assignees.some(
         a => a.user_id._id.toString() === assignData.user_id.toString()
       )
       if (!isAlreadyAssigned) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, 'User is not already assigned to this task')
+        throw new ApiError(StatusCodes.BAD_REQUEST, MESSAGES.TASK_USER_NOT_ASSIGNED)
       }
       updatedTask = await taskRepository.unassignTask(taskId, assignData, { session })
       await projectService.touch(task.project_id, new Date(), { session })
@@ -160,7 +161,7 @@ const updateTaskStatus = async (taskId, status) => {
     await session.withTransaction(async () => {
       const task = await taskRepository.getTaskById(taskId)
       if (!task) {
-        throw new ApiError(StatusCodes.NOT_FOUND, 'Task not found')
+        throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.TASK_NOT_FOUND)
       }
       updatedTask = await taskRepository.updateTaskStatus(taskId, status, { session })
       await projectService.touch(task.project_id, updatedTask.updatedAt, { session })

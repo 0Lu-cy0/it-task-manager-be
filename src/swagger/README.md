@@ -160,3 +160,17 @@ swagger-codegen validate -i http://localhost:8181/swagger.json
 1. Verify bearerAuth security scheme
 2. Check JWT token format
 3. Ensure token có prefix "Bearer "
+
+### ⚠️ IDE Warning về $ref (Có thể ignore)
+Các file YAML riêng lẻ (auth.yaml, other-endpoints.yaml, etc.) có thể hiện lỗi:
+```
+Failed to resolve $ref: #/components/schemas/...
+```
+
+**Nguyên nhân:** Các file này reference đến components được định nghĩa trong `index.yaml`, IDE không resolve được cross-file references.
+
+**Giải pháp:**
+- ✅ **Ignore warnings này** - Code vẫn chạy bình thường
+- ✅ Components đã được merge vào `index.yaml`
+- ✅ Swagger UI sẽ load đúng khi server chạy
+- ❌ **Không cần sửa** - Đây là limitation của YAML language server trong IDE

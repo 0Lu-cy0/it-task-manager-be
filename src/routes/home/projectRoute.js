@@ -4,55 +4,82 @@ import { projectMiddleware } from '~/middlewares/projectMiddleware'
 import { authMiddleware } from '~/middlewares/authMiddleware'
 
 const router = express.Router()
+router.use(authMiddleware.isAuthenticated)
+//Tạo dự án mới
+router.post('/', projectMiddleware.validateCreate, projectController.createNew)
 
 /**
- * Tạo dự án mới  ✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔
+ * Cập nhật thông tin dự án
  */
-router.post('/', authMiddleware.isAuthenticated, projectMiddleware.validateCreate, projectController.createNew)
+router.put(
+  '/:projectId',
+  projectMiddleware.checkProjectPermission('edit_project'),
+  projectMiddleware.validateUpdate,
+  projectController.update
+)
 
 /**
- * Cập nhật thông tin dự án  ✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔
+ * Xóa mềm dự án
  */
-router.put('/:projectId', authMiddleware.isAuthenticated, projectMiddleware.checkProjectPermission('edit_project'), projectMiddleware.validateUpdate, projectController.update)
+router.delete(
+  '/:projectId',
+  projectMiddleware.checkProjectPermission('delete_project'),
+  projectController.deleteProject
+)
 
 /**
- * Xóa mềm dự án  ✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔
+ * Lấy danh sách dự án
  */
-router.delete('/:projectId', authMiddleware.isAuthenticated, projectMiddleware.checkProjectPermission('delete_project'), projectController.deleteProject)
+router.get('/', projectController.getAllProjects)
 
 /**
- * Lấy danh sách dự án  ✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔
+ * Lấy thông tin chi tiết dự án theo ID
  */
-router.get('/', authMiddleware.isAuthenticated, projectController.getAllProjects)
-
-/**
- * Lấy thông tin chi tiết dự án theo ID  ✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔
- */
-router.get('/:projectId', authMiddleware.isAuthenticated, projectMiddleware.checkProjectPermission('view_project'), projectController.getById)
+router.get(
+  '/:projectId',
+  projectMiddleware.checkProjectPermission('view_project'),
+  projectController.getById
+)
 
 /**
  * Xóa thành viên khỏi dự án
  */
-router.delete('/:projectId/members/:userId', authMiddleware.isAuthenticated, projectMiddleware.checkProjectPermission('can_add_member'), projectController.removeMember)
+router.delete(
+  '/:projectId/members/:userId',
+  projectMiddleware.checkProjectPermission('can_add_member'),
+  projectController.removeMember
+)
 
-/**
- * Cập nhật vai trò của 1 hoặc nhiều thành viên cùng 1 lúc
- */
-router.put('/:projectId/roles', authMiddleware.isAuthenticated, projectMiddleware.checkProjectPermission('change_member_role'), projectMiddleware.validateUpdateMemberRole, projectController.updateMemberRole)
-
-// //Ủy quyền cho owner có thể tùy chỉnh permission theo ý muốn mà không bị giới hạn
-// router.patch('/:projectId/free-mode', authMiddleware.verifyToken, projectMiddleware.checkProjectPermission('toggle_free_mode'), projectMiddleware.checkIsOwner, projectController.toggleFreeMode,
-// )
 /**
  * Lấy danh sách vai trò của dự án
  */
-router.get('/:projectId/roles', authMiddleware.isAuthenticated, projectController.getProjectRoles)
+router.get('/:projectId/roles', projectController.getProjectRoles)
 
-// /**
-//  * Lấy thông tin lead của dự án
-//  */
-// router.get('/:projectId/lead', authMiddleware.isAuthenticated, projectController.getProjectLead)
+/**
+ * Lấy danh sách thành viên của dự án (public - ai cũng có thể xem)
+ * GET /projects/:projectId/members
+ */
+router.get('/:projectId/members', projectController.getProjectMembers)
 
-router.patch('/:projectId/free-mode', authMiddleware.isAuthenticated, projectMiddleware.checkIsOwner, projectController.toggleFreeMode)
+/**
+ * Cập nhật vai trò của thành viên trong dự án
+ * PUT /projects/:projectId/members/roles (RESTful: resource là members/roles)
+ */
+router.put(
+  '/:projectId/members/roles',
+  projectMiddleware.checkProjectPermission('change_member_role'),
+  projectMiddleware.validateUpdateMemberRole,
+  projectController.updateMemberRole
+)
+
+/**
+ * Toggle free mode setting (RESTful: PATCH resource settings)
+ * PATCH /projects/:projectId/settings
+ */
+router.patch(
+  '/:projectId/settings',
+  projectMiddleware.checkIsOwner,
+  projectController.toggleFreeMode
+)
 
 export const APIs_project = router

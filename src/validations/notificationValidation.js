@@ -1,30 +1,48 @@
 import Joi from 'joi'
 import { StatusCodes } from 'http-status-codes'
 import ApiError from '~/utils/ApiError'
-import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
+import { OBJECT_ID_RULE } from '~/utils/validators'
+import { MESSAGES } from '~/constants/messages'
 
 export const NOTIFICATION_COLLECTION_SCHEMA_JOI = Joi.object({
-  user_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+  user_id: Joi.string().required().pattern(OBJECT_ID_RULE).messages({
+    'string.pattern.base': MESSAGES.USER_ID_INVALID,
+    'any.required': MESSAGES.USER_ID_REQUIRED,
+  }),
   type: Joi.string()
-    .valid('task_assigned', 'task_due_soon', 'task_completed', 'project_invite', 'mention', 'message', 'comment', 'custom')
+    .valid(
+      'task_assigned',
+      'task_due_soon',
+      'task_completed',
+      'project_invite',
+      'mention',
+      'message',
+      'comment',
+      'custom'
+    )
     .required()
     .messages({
-      'any.required': 'Type is required',
-      'string.empty': 'Type is not allowed to be empty',
-      'any.only': 'Type must be one of [task_assigned, task_due_soon, task_completed, project_invite, mention, message, comment, custom]',
+      'any.required': MESSAGES.NOTIFICATION_TYPE_REQUIRED,
+      'string.empty': MESSAGES.NOTIFICATION_TYPE_EMPTY,
+      'any.only': MESSAGES.NOTIFICATION_TYPE_INVALID,
     }),
   title: Joi.string().required().trim().messages({
-    'any.required': 'Title is required',
-    'string.empty': 'Title is not allowed to be empty',
-    'string.trim': 'Title must not have leading or trailing whitespace',
+    'any.required': MESSAGES.NOTIFICATION_TITLE_REQUIRED,
+    'string.empty': MESSAGES.NOTIFICATION_TITLE_EMPTY,
+    'string.trim': MESSAGES.NOTIFICATION_TITLE_TRIM,
   }),
   content: Joi.string().required().trim().messages({
-    'any.required': 'Content is required',
-    'string.empty': 'Content is not allowed to be empty',
-    'string.trim': 'Content must not have leading or trailing whitespace',
+    'any.required': MESSAGES.NOTIFICATION_CONTENT_REQUIRED,
+    'string.empty': MESSAGES.NOTIFICATION_CONTENT_EMPTY,
+    'string.trim': MESSAGES.NOTIFICATION_CONTENT_TRIM,
   }),
   link: Joi.string().uri().optional().allow(null),
-  related_id: Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE).optional(),
+  related_id: Joi.string()
+    .pattern(OBJECT_ID_RULE)
+    .messages({
+      'string.pattern.base': MESSAGES.OBJECT_ID_INVALID,
+    })
+    .optional(),
   read: Joi.boolean().default(false),
   scheduled_for: Joi.date().optional().allow(null),
   created_at: Joi.date().timestamp().default(Date.now),
@@ -33,17 +51,34 @@ export const NOTIFICATION_COLLECTION_SCHEMA_JOI = Joi.object({
 })
 
 export const CREATE_NEW_SCHEMA = Joi.object({
-  user_id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
+  user_id: Joi.string().required().pattern(OBJECT_ID_RULE).messages({
+    'string.pattern.base': MESSAGES.USER_ID_INVALID,
+    'any.required': MESSAGES.USER_ID_REQUIRED,
+  }),
   type: Joi.string()
-    .valid('task_assigned', 'task_due_soon', 'task_completed', 'project_invite', 'mention', 'message', 'comment', 'custom')
+    .valid(
+      'task_assigned',
+      'task_due_soon',
+      'task_completed',
+      'project_invite',
+      'mention',
+      'message',
+      'comment',
+      'custom'
+    )
     .required(),
   title: Joi.string().required().trim(),
   content: Joi.string().required().trim(),
   link: Joi.string().uri().optional().allow(null),
-  related_id: Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE).optional(),
+  related_id: Joi.string()
+    .pattern(OBJECT_ID_RULE)
+    .messages({
+      'string.pattern.base': MESSAGES.OBJECT_ID_INVALID,
+    })
+    .optional(),
 })
 
-const validateBeforeCreate = async (data) => {
+const validateBeforeCreate = async data => {
   try {
     return await NOTIFICATION_COLLECTION_SCHEMA_JOI.validateAsync(data, { abortEarly: false })
   } catch (error) {

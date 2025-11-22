@@ -4,20 +4,19 @@ info:
   version: 1.0.0
   description: |
     ## 🚀 IT Task Manager Backend API
-    
+
     Hệ thống backend quản lý công việc và dự án cho các team IT.
-    
+
     ### 🔐 Xác thực
     API sử dụng JWT Bearer Token để xác thực. Để sử dụng các endpoint được bảo vệ:
     1. Đăng nhập qua `/auth/login` để lấy access token
     2. Thêm header: `Authorization: Bearer {your_token}`
-    
+
     ### 📊 Phân quyền
     - **Owner**: Toàn quyền, có thể bật Free Mode
     - **Lead**: Quản lý thành viên và tasks
-    - **Member**: Tạo và chỉnh sửa tasks
-    - **Viewer**: Chỉ xem
-    
+    - **Member**: Tạo và chỉnh sửa tasks (Role mặc định khi join dự án)
+
     ### 🔄 Rate Limiting
     - Auth endpoints: 10 requests/15 phút
     - Invite endpoints: 5 requests/1 giờ
@@ -53,78 +52,344 @@ tags:
   - name: Notifications
     description: Hệ thống thông báo
 
-# Import all component definitions
+# Component definitions
 components:
-  $ref: './components.yaml#/components'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "JWT token để xác thực. Format: Bearer {token}"
+
+  schemas:
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "64f8a1b2c3d4e5f6a7b8c9d0"
+        username:
+          type: string
+          example: "john_doe"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        full_name:
+          type: string
+          example: "John Doe"
+        avatar:
+          type: string
+          example: "https://example.com/avatar.jpg"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Project:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "64f8a1b2c3d4e5f6a7b8c9d0"
+        name:
+          type: string
+          example: "Website Redesign"
+        description:
+          type: string
+          example: "Redesign company website with modern UI/UX"
+        status:
+          type: string
+          enum: [planning, in_progress, testing, completed]
+          example: "in_progress"
+        priority:
+          type: string
+          enum: [low, medium, high]
+          example: "high"
+        start_date:
+          type: string
+          format: date
+          example: "2024-01-15"
+        end_date:
+          type: string
+          format: date
+          example: "2024-03-15"
+        created_by:
+          type: string
+          example: "64f8a1b2c3d4e5f6a7b8c9d0"
+        members:
+          type: array
+          items:
+            type: object
+            properties:
+              user_id:
+                type: string
+              project_role_id:
+                type: string
+              joined_at:
+                type: string
+                format: date-time
+        member_count:
+          type: number
+          example: 5
+        free_mode:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Task:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "64f8a1b2c3d4e5f6a7b8c9d0"
+        title:
+          type: string
+          example: "Design homepage mockup"
+        description:
+          type: string
+          example: "Create wireframes and mockups for the new homepage"
+        status:
+          type: string
+          enum: [todo, in_progress, testing, completed]
+          example: "todo"
+        priority:
+          type: string
+          enum: [low, medium, high]
+          example: "medium"
+        project_id:
+          type: string
+          example: "64f8a1b2c3d4e5f6a7b8c9d0"
+        created_by:
+          type: string
+          example: "64f8a1b2c3d4e5f6a7b8c9d0"
+        due_date:
+          type: string
+          format: date
+          example: "2024-02-01"
+        completed_at:
+          type: string
+          format: date-time
+        assignees:
+          type: array
+          items:
+            type: object
+            properties:
+              user_id:
+                type: string
+              role_id:
+                type: string
+              assigned_by:
+                type: string
+              assigned_at:
+                type: string
+                format: date-time
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["design", "frontend"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Notification:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "64f8a1b2c3d4e5f6a7b8c9d0"
+        user_id:
+          type: string
+          example: "64f8a1b2c3d4e5f6a7b8c9d0"
+        title:
+          type: string
+          example: "New task assigned"
+        message:
+          type: string
+          example: "You have been assigned to task: Design homepage mockup"
+        type:
+          type: string
+          enum: [task_assigned, project_invite, task_completed, project_update]
+          example: "task_assigned"
+        is_read:
+          type: boolean
+          example: false
+        related_id:
+          type: string
+          example: "64f8a1b2c3d4e5f6a7b8c9d0"
+        createdAt:
+          type: string
+          format: date-time
+
+    ApiResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success, error]
+          example: "success"
+        message:
+          type: string
+          example: "Operation completed successfully"
+        data:
+          type: object
+        errors:
+          type: array
+          items:
+            type: object
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "error"
+        message:
+          type: string
+          example: "Validation failed"
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+  responses:
+    UnauthorizedError:
+      description: Access token is missing or invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            status: "error"
+            message: "Unauthorized access"
+
+    ForbiddenError:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            status: "error"
+            message: "Forbidden: Insufficient permissions"
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            status: "error"
+            message: "Resource not found"
+
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            status: "error"
+            message: "Validation failed"
+            errors:
+              - field: "email"
+                message: "Email is required"
+
+    RateLimitError:
+      description: Too many requests
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            status: "error"
+            message: "Too many requests, please try again later"
 
 # Import all path definitions
 paths:
   # Authentication paths
   /auth/register:
-    $ref: './auth.yaml#/paths/~1auth~1register'
+    $ref: "./auth.yaml#/paths/~1auth~1register"
   /auth/login:
-    $ref: './auth.yaml#/paths/~1auth~1login'
+    $ref: "./auth.yaml#/paths/~1auth~1login"
   /auth/reset-password/request:
-    $ref: './auth.yaml#/paths/~1auth~1reset-password~1request'
+    $ref: "./auth.yaml#/paths/~1auth~1reset-password~1request"
   /auth/reset-password/confirm:
-    $ref: './auth.yaml#/paths/~1auth~1reset-password~1confirm'
+    $ref: "./auth.yaml#/paths/~1auth~1reset-password~1confirm"
   /auth/me:
-    $ref: './auth.yaml#/paths/~1auth~1me'
+    $ref: "./auth.yaml#/paths/~1auth~1me"
   /auth/me/password:
-    $ref: './auth.yaml#/paths/~1auth~1me~1password'
+    $ref: "./auth.yaml#/paths/~1auth~1me~1password"
   /auth/refresh:
-    $ref: './auth.yaml#/paths/~1auth~1refresh'
+    $ref: "./auth.yaml#/paths/~1auth~1refresh"
   /auth/logout:
-    $ref: './auth.yaml#/paths/~1auth~1logout'
+    $ref: "./auth.yaml#/paths/~1auth~1logout"
 
   # Project paths
   /home/projects:
-    $ref: './projects.yaml#/paths/~1home~1projects'
+    $ref: "./projects.yaml#/paths/~1home~1projects"
   /home/projects/{projectId}:
-    $ref: './projects.yaml#/paths/~1home~1projects~1{projectId}'
+    $ref: "./projects.yaml#/paths/~1home~1projects~1{projectId}"
   /home/projects/{projectId}/members/{userId}:
-    $ref: './projects.yaml#/paths/~1home~1projects~1{projectId}~1members~1{userId}'
+    $ref: "./projects.yaml#/paths/~1home~1projects~1{projectId}~1members~1{userId}"
   /home/projects/{projectId}/roles:
-    $ref: './projects.yaml#/paths/~1home~1projects~1{projectId}~1roles'
+    $ref: "./projects.yaml#/paths/~1home~1projects~1{projectId}~1roles"
   /home/projects/{projectId}/free-mode:
-    $ref: './projects.yaml#/paths/~1home~1projects~1{projectId}~1free-mode'
+    $ref: "./projects.yaml#/paths/~1home~1projects~1{projectId}~1free-mode"
 
   # Task paths
   /home/tasks:
-    $ref: './tasks.yaml#/paths/~1home~1tasks'
+    $ref: "./tasks.yaml#/paths/~1home~1tasks"
   /home/tasks/{projectId}:
-    $ref: './tasks.yaml#/paths/~1home~1tasks~1{projectId}'
+    $ref: "./tasks.yaml#/paths/~1home~1tasks~1{projectId}"
   /home/tasks/{projectId}/{id}:
-    $ref: './tasks.yaml#/paths/~1home~1tasks~1{projectId}~1{id}'
+    $ref: "./tasks.yaml#/paths/~1home~1tasks~1{projectId}~1{id}"
   /home/tasks/{projectId}/{id}/assign:
-    $ref: './tasks.yaml#/paths/~1home~1tasks~1{projectId}~1{id}~1assign'
+    $ref: "./tasks.yaml#/paths/~1home~1tasks~1{projectId}~1{id}~1assign"
   /home/tasks/{projectId}/{id}/unassign:
-    $ref: './tasks.yaml#/paths/~1home~1tasks~1{projectId}~1{id}~1unassign'
+    $ref: "./tasks.yaml#/paths/~1home~1tasks~1{projectId}~1{id}~1unassign"
   /home/tasks/{projectId}/{id}/status:
-    $ref: './tasks.yaml#/paths/~1home~1tasks~1{projectId}~1{id}~1status'
+    $ref: "./tasks.yaml#/paths/~1home~1tasks~1{projectId}~1{id}~1status"
 
   # Other endpoints
   /home/dashboards:
-    $ref: './other-endpoints.yaml#/paths/~1home~1dashboards'
+    $ref: "./other-endpoints.yaml#/paths/~1home~1dashboards"
   /home/dashboards/recent:
-    $ref: './other-endpoints.yaml#/paths/~1home~1dashboards~1recent'
+    $ref: "./other-endpoints.yaml#/paths/~1home~1dashboards~1recent"
   /home/invites/{projectId}/inviteLink:
-    $ref: './other-endpoints.yaml#/paths/~1home~1invites~1{projectId}~1inviteLink'
+    $ref: "./other-endpoints.yaml#/paths/~1home~1invites~1{projectId}~1inviteLink"
   /home/invites/{token}:
-    $ref: './other-endpoints.yaml#/paths/~1home~1invites~1{token}'
+    $ref: "./other-endpoints.yaml#/paths/~1home~1invites~1{token}"
   /home/project-roles/{projectId}/roles/{roleId}/permissions:
-    $ref: './other-endpoints.yaml#/paths/~1home~1project-roles~1{projectId}~1roles~1{roleId}~1permissions'
+    $ref: "./other-endpoints.yaml#/paths/~1home~1project-roles~1{projectId}~1roles~1{roleId}~1permissions"
   /home/project-roles/{projectId}/roles/{roleId}/permissions/{permissionId}:
-    $ref: './other-endpoints.yaml#/paths/~1home~1project-roles~1{projectId}~1roles~1{roleId}~1permissions~1{permissionId}'
+    $ref: "./other-endpoints.yaml#/paths/~1home~1project-roles~1{projectId}~1roles~1{roleId}~1permissions~1{permissionId}"
   /home/search:
-    $ref: './other-endpoints.yaml#/paths/~1home~1search'
+    $ref: "./other-endpoints.yaml#/paths/~1home~1search"
   /home/search/projects:
-    $ref: './other-endpoints.yaml#/paths/~1home~1search~1projects'
+    $ref: "./other-endpoints.yaml#/paths/~1home~1search~1projects"
   /home/search/tasks:
-    $ref: './other-endpoints.yaml#/paths/~1home~1search~1tasks'
+    $ref: "./other-endpoints.yaml#/paths/~1home~1search~1tasks"
   /home/search/users:
-    $ref: './other-endpoints.yaml#/paths/~1home~1search~1users'
+    $ref: "./other-endpoints.yaml#/paths/~1home~1search~1users"
   /home/noti:
-    $ref: './other-endpoints.yaml#/paths/~1home~1noti'
+    $ref: "./other-endpoints.yaml#/paths/~1home~1noti"
   /home/noti/{notiId}:
-    $ref: './other-endpoints.yaml#/paths/~1home~1noti~1{notiId}'
+    $ref: "./other-endpoints.yaml#/paths/~1home~1noti~1{notiId}"

@@ -1,7 +1,7 @@
 // src/repository/searchRepository.js
 import { getMeiliClient } from '~/config/meilisearch'
 
-export const syncProjectToMeili = async (project) => {
+export const syncProjectToMeili = async project => {
   const meiliClient = getMeiliClient()
   const index = meiliClient.index('projects')
 
@@ -21,13 +21,13 @@ export const syncProjectToMeili = async (project) => {
   await index.addDocuments([document], { primaryKey: 'id' })
 }
 
-export const deleteProjectFromMeili = async (projectId) => {
+export const deleteProjectFromMeili = async projectId => {
   const meiliClient = getMeiliClient()
   const index = meiliClient.index('projects')
   await index.deleteDocument(projectId.toString())
 }
 
-export const syncTaskToMeili = async (task) => {
+export const syncTaskToMeili = async task => {
   const meiliClient = getMeiliClient()
   const index = meiliClient.index('tasks')
 
@@ -47,7 +47,7 @@ export const syncTaskToMeili = async (task) => {
   await index.addDocuments([document], { primaryKey: 'id' })
 }
 
-export const deleteTaskFromMeili = async (taskId) => {
+export const deleteTaskFromMeili = async taskId => {
   const meiliClient = getMeiliClient()
   const index = meiliClient.index('tasks')
   await index.deleteDocument(taskId.toString())

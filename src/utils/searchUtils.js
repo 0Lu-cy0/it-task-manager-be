@@ -7,7 +7,7 @@ export const setupMeiliIndexes = async () => {
   const projectsIndex = meiliClient.index('projects')
   await projectsIndex.updateSettings({
     searchableAttributes: ['name', 'description'],
-    filterableAttributes: ['status', 'priority', 'members.user_id'],
+    filterableAttributes: ['status', 'priority', 'members.user_id', 'visibility'],
     sortableAttributes: ['created_at', 'name'],
   })
 
@@ -28,7 +28,7 @@ export const setupMeiliIndexes = async () => {
   })
 }
 
-export const buildMeiliFilters = (filters) => {
+export const buildMeiliFilters = filters => {
   const conditions = []
 
   if (filters.status) conditions.push(`status = "${filters.status}"`)

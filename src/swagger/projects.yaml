@@ -36,13 +36,13 @@ paths:
             enum: [low, medium, high]
           description: Lọc theo độ ưu tiên
       responses:
-        '200':
+        "200":
           description: Danh sách dự án
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: "#/components/schemas/ApiResponse"
                   - type: object
                     properties:
                       data:
@@ -51,7 +51,7 @@ paths:
                           projects:
                             type: array
                             items:
-                              $ref: '#/components/schemas/Project'
+                              $ref: "#/components/schemas/Project"
                           pagination:
                             type: object
                             properties:
@@ -63,8 +63,8 @@ paths:
                                 type: integer
                               totalPages:
                                 type: integer
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
 
     post:
       tags:
@@ -109,21 +109,21 @@ paths:
                   format: date
                   example: "2024-03-15"
       responses:
-        '201':
+        "201":
           description: Dự án được tạo thành công
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: "#/components/schemas/ApiResponse"
                   - type: object
                     properties:
                       data:
-                        $ref: '#/components/schemas/Project'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
+                        $ref: "#/components/schemas/Project"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
 
   /home/projects/{projectId}:
     get:
@@ -141,23 +141,23 @@ paths:
             type: string
           description: ID của dự án
       responses:
-        '200':
+        "200":
           description: Chi tiết dự án
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: "#/components/schemas/ApiResponse"
                   - type: object
                     properties:
                       data:
-                        $ref: '#/components/schemas/Project'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-        '404':
-          $ref: '#/components/responses/NotFoundError'
+                        $ref: "#/components/schemas/Project"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
 
     put:
       tags:
@@ -205,25 +205,25 @@ paths:
                   format: date
                   example: "2024-04-15"
       responses:
-        '200':
+        "200":
           description: Cập nhật thành công
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: "#/components/schemas/ApiResponse"
                   - type: object
                     properties:
                       data:
-                        $ref: '#/components/schemas/Project'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-        '404':
-          $ref: '#/components/responses/NotFoundError'
+                        $ref: "#/components/schemas/Project"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
 
     delete:
       tags:
@@ -240,18 +240,18 @@ paths:
             type: string
           description: ID của dự án
       responses:
-        '200':
+        "200":
           description: Xóa thành công
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-        '404':
-          $ref: '#/components/responses/NotFoundError'
+                $ref: "#/components/schemas/ApiResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
 
   /home/projects/{projectId}/members/{userId}:
     delete:
@@ -275,18 +275,18 @@ paths:
             type: string
           description: ID của người dùng cần xóa
       responses:
-        '200':
+        "200":
           description: Xóa thành viên thành công
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-        '404':
-          $ref: '#/components/responses/NotFoundError'
+                $ref: "#/components/schemas/ApiResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
 
   /home/projects/{projectId}/roles:
     get:
@@ -304,13 +304,13 @@ paths:
             type: string
           description: ID của dự án
       responses:
-        '200':
+        "200":
           description: Danh sách vai trò
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: "#/components/schemas/ApiResponse"
                   - type: object
                     properties:
                       data:
@@ -322,7 +322,7 @@ paths:
                               type: string
                             name:
                               type: string
-                              enum: [owner, lead, member, viewer]
+                              enum: [owner, lead, member]
                             permissions:
                               type: array
                               items:
@@ -334,12 +334,12 @@ paths:
                                     type: string
                                   description:
                                     type: string
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-        '404':
-          $ref: '#/components/responses/NotFoundError'
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
 
     put:
       tags:
@@ -379,20 +379,20 @@ paths:
                         type: string
                         example: "64f8a1b2c3d4e5f6a7b8c9d1"
       responses:
-        '200':
+        "200":
           description: Cập nhật vai trò thành công
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-        '404':
-          $ref: '#/components/responses/NotFoundError'
+                $ref: "#/components/schemas/ApiResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
 
   /home/projects/{projectId}/free-mode:
     patch:
@@ -422,13 +422,13 @@ paths:
                   type: boolean
                   example: true
       responses:
-        '200':
+        "200":
           description: Cập nhật Free Mode thành công
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: "#/components/schemas/ApiResponse"
                   - type: object
                     properties:
                       data:
@@ -436,15 +436,15 @@ paths:
                         properties:
                           free_mode:
                             type: boolean
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
           description: Chỉ Owner mới có thể thay đổi Free Mode
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          $ref: '#/components/responses/NotFoundError'
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundError"

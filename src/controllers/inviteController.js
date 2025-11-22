@@ -2,17 +2,29 @@ import { inviteService } from '~/services/inviteService'
 import { StatusCodes } from 'http-status-codes'
 
 export const inviteController = {
-  async createInvite(req, res, next) {
+  async getPermanentInvite(req, res, next) {
     try {
       const { projectId } = req.params
-      const { email, roleName = 'viewer' } = req.body
-      const userId = req.user._id
+      const invite = await inviteService.getPermanentInvite(projectId)
 
-      const invite = await inviteService.createInvite(projectId, userId, email, roleName)
-
-      res.status(StatusCodes.CREATED).json({
-        message: 'Lời mời đã được gửi',
+      res.status(StatusCodes.OK).json({
+        message: 'Link lời mời vĩnh viễn',
         invite,
+      })
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  async getEmailInvites(req, res, next) {
+    try {
+      const { projectId } = req.params
+
+      const invites = await inviteService.getEmailInvites(projectId)
+
+      res.status(StatusCodes.OK).json({
+        message: 'Danh sách lời mời qua email',
+        invites,
       })
     } catch (err) {
       next(err)
@@ -25,13 +37,15 @@ export const inviteController = {
       const userId = req.user?._id
 
       if (!userId) {
-        return res.status(StatusCodes.UNAUTHORIZED).json({ message: 'Chưa đăng nhập, vui lòng đăng nhập' })
+        return res
+          .status(StatusCodes.UNAUTHORIZED)
+          .json({ message: 'Chưa đăng nhập, vui lòng đăng nhập' })
       }
 
       const result = await inviteService.handleInviteLink(token, userId)
 
       res.status(StatusCodes.OK).json({
-        message: 'Đã tham gia dự án với vai trò viewer',
+        message: 'Đã tham gia dự án với vai trò member',
         project_id: result.project_id,
       })
     } catch (err) {
@@ -39,33 +53,76 @@ export const inviteController = {
     }
   },
 
-  // async handleInviteAction(req, res, next) {
-  //   try {
-  //     const { projectId, inviteId } = req.params
-  //     const { action, roleName = 'member' } = req.body
-  //     const userId = req.user._id
+  // Gửi lời mời qua email
+  async sendInviteByEmail(req, res, next) {
+    try {
+      const { projectId } = req.params
+      const { email, roleId } = req.body
+      const userId = req.user._id
 
-  //     const result = await inviteService.handleInviteAction(projectId, inviteId, userId, action, roleName)
+      const result = await inviteService.sendInviteByEmail(projectId, email, userId, roleId)
 
-  //     res.status(StatusCodes.OK).json(result)
-  //   } catch (err) {
-  //     next(err)
-  //   }
-  // },
+      res.status(StatusCodes.CREATED).json(result)
+    } catch (err) {
+      next(err)
+    }
+  },
 
-  // async listInvites(req, res, next) {
-  //   try {
-  //     const { projectId } = req.params
-  //     const userId = req.user._id
+  // Chấp nhận lời mời
+  async acceptInvite(req, res, next) {
+    try {
+      const { inviteId } = req.params
+      const userId = req.user._id
 
-  //     const invites = await inviteService.listInvites(projectId, userId)
+      const result = await inviteService.acceptInvite(inviteId, userId)
 
-  //     res.status(StatusCodes.OK).json({
-  //       message: 'Danh sách lời mời',
-  //       invites,
-  //     })
-  //   } catch (err) {
-  //     next(err)
-  //   }
-  // },
+      res.status(StatusCodes.OK).json(result)
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  // Từ chối lời mời
+  async rejectInvite(req, res, next) {
+    try {
+      const { inviteId } = req.params
+      const userId = req.user._id
+
+      const result = await inviteService.rejectInvite(inviteId, userId)
+
+      res.status(StatusCodes.OK).json(result)
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  // Lấy danh sách lời mời của user
+  async getUserInvites(req, res, next) {
+    try {
+      const userId = req.user._id
+
+      const invites = await inviteService.getUserInvites(userId)
+
+      res.status(StatusCodes.OK).json({
+        message: 'Danh sách lời mời',
+        invites,
+      })
+    } catch (err) {
+      next(err)
+    }
+  },
+
+  // Hủy lời mời
+  async cancelInvite(req, res, next) {
+    try {
+      const { inviteId } = req.params
+      const userId = req.user._id
+
+      const result = await inviteService.cancelInvite(inviteId, userId)
+
+      res.status(StatusCodes.OK).json(result)
+    } catch (err) {
+      next(err)
+    }
+  },
 }

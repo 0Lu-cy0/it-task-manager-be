@@ -50,8 +50,7 @@ const deleteProject = async (req, res, next) => {
         status: 'error',
         message: MESSAGES.PROJECT_NOT_FOUND,
       })
-    }
-    else {
+    } else {
       res.status(StatusCodes.OK).json({
         status: 'success',
         message: MESSAGES.PROJECT_DELETED,
@@ -80,7 +79,8 @@ const getAllProjects = async (req, res, next) => {
 const getById = async (req, res, next) => {
   try {
     const { projectId } = req.params
-    const result = await projectService.getProjectById(projectId)
+    const userId = req.user?._id // Lấy userId từ auth middleware
+    const result = await projectService.getProjectById(projectId, userId)
     return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Dự án được lấy thành công',
@@ -118,7 +118,9 @@ const removeMember = async (req, res, next) => {
       message: 'Xóa thành viên thành công',
     })
   } catch (error) {
-    logger.error(`Lỗi khi xóa thành viên ${req.params.userId} khỏi dự án ${req.params.id}: ${error.message}`)
+    logger.error(
+      `Lỗi khi xóa thành viên ${req.params.userId} khỏi dự án ${req.params.id}: ${error.message}`
+    )
     next(error)
   }
 }
@@ -134,7 +136,9 @@ const updateMemberRole = async (req, res, next) => {
       data: result,
     })
   } catch (error) {
-    logger.error(`Lỗi khi cập nhật vai trò thành viên ${req.params.userId} trong dự án ${req.params.id}: ${error.message}`)
+    logger.error(
+      `Lỗi khi cập nhật vai trò thành viên ${req.params.userId} trong dự án ${req.params.id}: ${error.message}`
+    )
     next(error)
   }
 }
@@ -150,6 +154,21 @@ const getProjectRoles = async (req, res, next) => {
     })
   } catch (error) {
     logger.error(`Lỗi khi lấy danh sách vai trò của dự án ${req.params.id}: ${error.message}`)
+    next(error)
+  }
+}
+
+const getProjectMembers = async (req, res, next) => {
+  try {
+    const { projectId } = req.params
+    const result = await projectService.getProjectMembers(projectId)
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Danh sách thành viên được lấy thành công',
+      data: result,
+    })
+  } catch (error) {
+    logger.error(`Lỗi khi lấy danh sách thành viên của dự án ${req.params.projectId}: ${error.message}`)
     next(error)
   }
 }
@@ -175,7 +194,11 @@ const toggleFreeMode = async (req, res, next) => {
     const { free_mode } = req.body
     const currentUserId = req.user._id
 
-    const updatedProject = await projectService.toggleFreeMode({ projectId, free_mode, currentUserId })
+    const updatedProject = await projectService.toggleFreeMode({
+      projectId,
+      free_mode,
+      currentUserId,
+    })
 
     res.status(StatusCodes.OK).json({
       message: 'Cập nhật free_mode thành công',
@@ -196,6 +219,7 @@ export const projectController = {
   removeMember,
   updateMemberRole,
   getProjectRoles,
+  getProjectMembers,
   getProjectLead,
   toggleFreeMode,
 }

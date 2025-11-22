@@ -45,10 +45,10 @@ export const projectRoleController = {
     }
   },
 
-  // Giữ thêm hàm từ file của bạn để mở rộng
   getAll: async (req, res, next) => {
     try {
-      const roles = await projectRoleService.getProjectRoles(req.params.projectId)
+      const { projectId } = req.params
+      const roles = await projectRoleService.getProjectRoles(projectId)
       res.status(StatusCodes.OK).json({ message: 'Lấy vai trò dự án thành công', data: roles })
     } catch (error) {
       next(error)
