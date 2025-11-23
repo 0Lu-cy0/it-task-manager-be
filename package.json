@@ -15,7 +15,7 @@
     "production": "npm run build && BUILD_MODE=production node ./build/src/server.js",
     "download-meili": "node scripts/download-meilisearch.js",
     "meili": "node scripts/start-meili-powershell.js",
-    "dev": "concurrently -k -n \"MEILI,SERVER\" -c \"cyan,green\" \"yarn run meili\" \"cross-env BUILD_MODE=dev nodemon --exec babel-node ./src/server.js\"",
+    "dev": "concurrently -k -n \"MEILI,SERVER\" -c \"cyan,green\" \"npm run meili\" \"cross-env BUILD_MODE=dev nodemon --exec babel-node ./src/server.js\"",
     "setup": "yarn run download-meili && yarn run dev",
     "debug": "node inspect ./src/server.js",
     "migrate:check-viewer": "babel-node src/scripts/check-viewer-role.js",
