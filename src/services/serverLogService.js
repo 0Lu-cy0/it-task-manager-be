@@ -9,6 +9,7 @@ const createLog = async (userId, data) => {
   const logData = {
     user: userId,
     content: data.content,
+    project: data.projectId || null,
     logHistory: data.logHistory || null,
   }
 
@@ -20,13 +21,13 @@ const createLog = async (userId, data) => {
  * Lấy tất cả logs hoặc logs theo user
  */
 const getLogs = async (query = {}) => {
-  const { page = 1, limit = 50, userId } = query
+  const { page = 1, limit = 50, userId, projectId } = query
 
-  if (userId) {
-    return await serverLogRepository.getLogsByUserId(userId, page, limit)
-  }
+  const filters = {}
+  if (userId) filters.user = userId
+  if (projectId) filters.project = projectId
 
-  return await serverLogRepository.getAllLogs(page, limit)
+  return await serverLogRepository.getAllLogs(page, limit, filters)
 }
 
 /**

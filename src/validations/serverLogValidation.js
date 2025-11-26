@@ -12,6 +12,10 @@ const createLogSchema = Joi.object({
     'string.max': 'Nội dung log không được vượt quá 5000 ký tự',
     'any.required': 'Nội dung log là bắt buộc',
   }),
+  projectId: Joi.string().hex().length(24).allow(null, '').messages({
+    'string.hex': 'ID dự án không hợp lệ',
+    'string.length': 'ID dự án phải có 24 ký tự',
+  }),
   logHistory: Joi.string().max(1000).allow(null, '').messages({
     'string.base': 'Lịch sử log phải là chuỗi',
     'string.max': 'Lịch sử log không được vượt quá 1000 ký tự',
@@ -46,6 +50,10 @@ const validateGetLogsQuery = query => {
     userId: Joi.string().hex().length(24).messages({
       'string.hex': 'ID người dùng không hợp lệ',
       'string.length': 'ID người dùng phải có 24 ký tự',
+    }),
+    projectId: Joi.string().hex().length(24).messages({
+      'string.hex': 'ID dự án không hợp lệ',
+      'string.length': 'ID dự án phải có 24 ký tự',
     }),
   })
 

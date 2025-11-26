@@ -17,6 +17,7 @@ const getAllLogs = async (page = 1, limit = 50, filters = {}) => {
   const logs = await serverLogModel
     .find(query)
     .populate('user', 'email full_name department')
+    .populate('project', 'project_name')
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
@@ -50,6 +51,7 @@ const findLogById = async id => {
   return await serverLogModel
     .findOne({ _id: id, _destroy: false })
     .populate('user', 'email full_name avatar_url department')
+    .populate('project', 'project_name')
     .lean()
     .exec()
 }

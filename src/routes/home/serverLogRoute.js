@@ -13,6 +13,7 @@ const router = express.Router()
  * - page: số trang (mặc định: 1)
  * - limit: số log mỗi trang (mặc định: 50, tối đa: 100)
  * - userId: lọc theo user ID (tùy chọn)
+ * - projectId: lọc theo project ID (tùy chọn)
  */
 router.get('/', authMiddleware.isAuthenticated, serverLogController.getLogs)
 
@@ -25,7 +26,7 @@ router.get('/:id', authMiddleware.isAuthenticated, serverLogController.getLogByI
 /**
  * Tạo log mới
  * POST /logs
- * Body: { content: string, logHistory?: string }
+ * Body: { content: string, projectId?: string, logHistory?: string }
  */
 router.post('/', authMiddleware.isAuthenticated, serverLogController.createLog)
 
