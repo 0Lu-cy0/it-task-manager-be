@@ -5,6 +5,15 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Yarn Berry (Yarn 2+)
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
+
 # Environment variables
 .env
 .env.*
