@@ -8,6 +8,7 @@ import { APIs_notification } from './notificationRoute'
 import { APIs_search } from './searchRoute'
 import { APIs_column } from './columnRouter'
 import { APIs_accessRequest } from './accessRequestRoute'
+import { serverLogRoute } from './serverLogRoute'
 
 const Router = express.Router()
 
@@ -19,6 +20,7 @@ Router.use('/invites', APIs_invite)
 Router.use('/access-requests', APIs_accessRequest)
 Router.use('/dashboards', APIs_dashboard)
 Router.use('/noti', APIs_notification)
+Router.use('/logs', serverLogRoute)
 Router.use('/', APIs_search)
 
 export const APIs_home = Router
