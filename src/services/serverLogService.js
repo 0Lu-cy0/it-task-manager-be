@@ -1,6 +1,4 @@
-import { StatusCodes } from 'http-status-codes'
 import { serverLogRepository } from '~/repository/serverLogRepository'
-import { ApiError } from '~/utils/ApiError'
 
 /**
  * Tạo log mới
@@ -22,27 +20,15 @@ const createLog = async (userId, data) => {
  */
 const getLogs = async (query = {}) => {
   const { page = 1, limit = 50, userId, projectId } = query
-
-  const filters = {}
-  if (userId) filters.user = userId
-  if (projectId) filters.project = projectId
+  const filters = {
+    project: projectId,
+    user: userId,
+  }
 
   return await serverLogRepository.getAllLogs(page, limit, filters)
-}
-
-/**
- * Lấy log theo ID
- */
-const getLogById = async logId => {
-  const log = await serverLogRepository.findLogById(logId)
-  if (!log) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy log')
-  }
-  return log
 }
 
 export const serverLogService = {
   createLog,
   getLogs,
-  getLogById,
 }

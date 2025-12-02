@@ -12,7 +12,8 @@ const createLogSchema = Joi.object({
     'string.max': 'Nội dung log không được vượt quá 5000 ký tự',
     'any.required': 'Nội dung log là bắt buộc',
   }),
-  projectId: Joi.string().hex().length(24).allow(null, '').messages({
+  projectId: Joi.string().hex().length(24).required().messages({
+    'any.required': 'ID dự án là bắt buộc',
     'string.hex': 'ID dự án không hợp lệ',
     'string.length': 'ID dự án phải có 24 ký tự',
   }),
@@ -47,14 +48,6 @@ const validateGetLogsQuery = query => {
       'number.min': 'Giới hạn phải lớn hơn hoặc bằng 1',
       'number.max': 'Giới hạn không được vượt quá 100',
     }),
-    userId: Joi.string().hex().length(24).messages({
-      'string.hex': 'ID người dùng không hợp lệ',
-      'string.length': 'ID người dùng phải có 24 ký tự',
-    }),
-    projectId: Joi.string().hex().length(24).messages({
-      'string.hex': 'ID dự án không hợp lệ',
-      'string.length': 'ID dự án phải có 24 ký tự',
-    }),
   })
 
   const { error, value } = schema.validate(query)
@@ -64,7 +57,29 @@ const validateGetLogsQuery = query => {
   return value
 }
 
+const validateGetLogsParams = params => {
+  const schema = Joi.object({
+    projectId: Joi.string().hex().length(24).required().messages({
+      'any.required': 'ID dự án là bắt buộc',
+      'string.hex': 'ID dự án không hợp lệ',
+      'string.length': 'ID dự án phải có 24 ký tự',
+    }),
+    userId: Joi.string().hex().length(24).required().messages({
+      'any.required': 'ID người dùng là bắt buộc',
+      'string.hex': 'ID người dùng không hợp lệ',
+      'string.length': 'ID người dùng phải có 24 ký tự',
+    }),
+  })
+
+  const { error, value } = schema.validate(params)
+  if (error) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, error.message)
+  }
+  return value
+}
+
 export const serverLogValidation = {
   validateCreateLog,
   validateGetLogsQuery,
+  validateGetLogsParams,
 }
