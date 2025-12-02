@@ -1,6 +1,7 @@
 # Docker Deployment Guide
 
 ## Prerequisites
+
 - Docker installed
 - Docker Compose installed
 - `.env` file configured
@@ -8,16 +9,19 @@
 ## Quick Start
 
 ### 1. Build and run with Docker Compose
+
 ```bash
 docker-compose up -d
 ```
 
 ### 2. View logs
+
 ```bash
 docker-compose logs -f
 ```
 
 ### 3. Stop the application
+
 ```bash
 docker-compose down
 ```
@@ -25,11 +29,13 @@ docker-compose down
 ## Manual Docker Commands
 
 ### Build image
+
 ```bash
 docker build -t trello-backend .
 ```
 
 ### Run container
+
 ```bash
 docker run -d \
   --name trello-backend \
@@ -40,11 +46,13 @@ docker run -d \
 ```
 
 ### View logs
+
 ```bash
 docker logs -f trello-backend
 ```
 
 ### Stop container
+
 ```bash
 docker stop trello-backend
 docker rm trello-backend
@@ -81,21 +89,25 @@ The container includes a health check that pings the backend every 30 seconds.
 ## Troubleshooting
 
 ### Check container status
+
 ```bash
 docker ps -a
 ```
 
 ### Enter container shell
+
 ```bash
 docker exec -it trello-backend sh
 ```
 
 ### Remove all containers and volumes
+
 ```bash
 docker-compose down -v
 ```
 
 ### Rebuild without cache
+
 ```bash
 docker-compose build --no-cache
 docker-compose up -d
@@ -111,6 +123,7 @@ For production on platforms like Railway, Render, or DigitalOcean:
 4. Deploy using Dockerfile
 
 The platform will automatically:
+
 - Build the Docker image
 - Run the container
 - Expose the ports
