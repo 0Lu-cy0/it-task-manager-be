@@ -19,6 +19,12 @@ export const TASK_COLLECTION_SCHEMA_JOI = Joi.object({
     'any.required': MESSAGES.TASK_PRIORITY_REQUIRED,
     'any.only': MESSAGES.TASK_PRIORITY_INVALID,
   }),
+  type: Joi.string()
+    .valid('task', 'story', 'bug', 'subtask', 'asset', 'epic', 'research', 'other')
+    .default('task')
+    .messages({
+      'any.only': MESSAGES.TASK_TYPE_INVALID,
+    }),
   project_id: Joi.string().required().pattern(OBJECT_ID_RULE).messages({
     'string.pattern.base': MESSAGES.PROJECT_ID_INVALID,
     'any.required': MESSAGES.PROJECT_ID_REQUIRED,
@@ -78,6 +84,8 @@ export const CREATE_NEW_SCHEMA = Joi.object({
   description: Joi.string().allow(null).default(null),
   status: Joi.string().valid('todo', 'in_progress', 'testing', 'completed').required(),
   priority: Joi.string().valid('low', 'medium', 'high').required(),
+  type: Joi.string().valid('task', 'story', 'bug', 'subtask', 'asset', 'epic', 'research', 'other')
+    .default('task'),
   project_id: Joi.string().required().pattern(OBJECT_ID_RULE).messages({
     'string.pattern.base': MESSAGES.PROJECT_ID_INVALID,
     'any.required': MESSAGES.PROJECT_ID_REQUIRED,
@@ -113,6 +121,9 @@ const validateCreate = async data => {
     }),
     status: Joi.string().valid('todo', 'in_progress', 'testing', 'completed').default('todo'),
     priority: Joi.string().valid('low', 'medium', 'high').required(),
+    type: Joi.string()
+      .valid('task', 'story', 'bug', 'subtask', 'asset', 'epic', 'research', 'other')
+      .default('task'),
     due_date: Joi.date().allow(null),
     tags: Joi.array().items(Joi.string()),
     columnId: Joi.string().allow(null, ''),
@@ -131,6 +142,7 @@ const validateUpdate = async data => {
     title: Joi.string().trim(),
     description: Joi.string().allow(null, ''),
     priority: Joi.string().valid('low', 'medium', 'high'),
+    type: Joi.string().valid('task', 'story', 'bug', 'subtask', 'asset', 'epic', 'research', 'other'),
     due_date: Joi.date().allow(null),
     tags: Joi.array().items(Joi.string()),
   })

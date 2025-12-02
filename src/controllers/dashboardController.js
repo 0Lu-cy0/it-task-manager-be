@@ -1,5 +1,6 @@
 import { StatusCodes } from 'http-status-codes'
 import { dashboardService } from '~/services/dashboardService'
+import { dashboardValidation } from '~/validations/dashboardValidation'
 
 const getAllInfor = async (req, res, next) => {
   try {
@@ -23,7 +24,61 @@ const getRecentProject = async (req, res, next) => {
   }
 }
 
+const getProjectSummary = async (req, res, next) => {
+  try {
+    const { projectId } = dashboardValidation.validateProjectParams(req.params)
+    const summaryQuery = dashboardValidation.validateSummaryQuery(req.query)
+    const data = await dashboardService.getProjectSummary(req.user._id, {
+      projectId,
+      ...summaryQuery,
+    })
+    res.status(StatusCodes.OK).json({
+      message: 'Lấy dữ liệu tổng quan thành công',
+      data,
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+const getTeamWorkload = async (req, res, next) => {
+  try {
+    const { projectId } = dashboardValidation.validateProjectParams(req.params)
+    const workloadQuery = dashboardValidation.validateWorkloadQuery(req.query)
+    const data = await dashboardService.getTeamWorkload(req.user._id, {
+      projectId,
+      ...workloadQuery,
+    })
+    res.status(StatusCodes.OK).json({
+      message: 'Lấy workload thành viên thành công',
+      data,
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+const getProjectActivity = async (req, res, next) => {
+  try {
+    const { projectId } = dashboardValidation.validateProjectParams(req.params)
+    const activityQuery = dashboardValidation.validateActivityQuery(req.query)
+    const data = await dashboardService.getProjectActivity(req.user._id, {
+      projectId,
+      ...activityQuery,
+    })
+    res.status(StatusCodes.OK).json({
+      message: 'Lấy activity feed thành công',
+      data,
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
 export const dashboardController = {
   getAllInfor,
   getRecentProject,
+  getProjectSummary,
+  getTeamWorkload,
+  getProjectActivity,
 }
