@@ -20,14 +20,14 @@ const createLog = async (req, res, next) => {
 }
 
 /**
- * Lấy danh sách logs
- * GET /logs
- * Query params: page, limit, userId
+ * Lấy danh sách logs theo project & user
+ * GET /logs/projects/:projectId/users/:userId
  */
 const getLogs = async (req, res, next) => {
   try {
-    const query = serverLogValidation.validateGetLogsQuery(req.query)
-    const result = await serverLogService.getLogs(query)
+    const params = serverLogValidation.validateGetLogsParams(req.params)
+    const pagination = serverLogValidation.validateGetLogsQuery(req.query)
+    const result = await serverLogService.getLogs({ ...params, ...pagination })
     res.status(StatusCodes.OK).json({
       message: 'Lấy danh sách logs thành công',
       data: result.logs,
@@ -38,24 +38,7 @@ const getLogs = async (req, res, next) => {
   }
 }
 
-/**
- * Lấy log theo ID
- * GET /logs/:id
- */
-const getLogById = async (req, res, next) => {
-  try {
-    const log = await serverLogService.getLogById(req.params.id)
-    res.status(StatusCodes.OK).json({
-      message: 'Lấy log thành công',
-      data: log,
-    })
-  } catch (error) {
-    next(error)
-  }
-}
-
 export const serverLogController = {
   createLog,
   getLogs,
-  getLogById,
 }
