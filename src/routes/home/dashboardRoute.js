@@ -16,4 +16,13 @@ router.get('/', dashboardController.getAllInfor)
 // GET /dashboards/projects/recent (RESTful: resource là projects, filter là recent)
 router.get('/projects/recent', dashboardController.getRecentProject)
 
+// Tổng quan summary cho 1 project cụ thể
+router.get('/projects/:projectId/summary', dashboardController.getProjectSummary)
+
+// Workload theo thành viên
+router.get('/projects/:projectId/workload', dashboardController.getTeamWorkload)
+
+// Activity feed từ server logs
+router.get('/projects/:projectId/activity', dashboardController.getProjectActivity)
+
 export const APIs_dashboard = router

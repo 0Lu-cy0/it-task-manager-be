@@ -108,6 +108,8 @@ export const MESSAGES = {
   TASK_STATUS_INVALID: 'Trạng thái task phải là một trong [todo, in_progress, testing, completed]',
   TASK_PRIORITY_REQUIRED: 'Độ ưu tiên task là bắt buộc',
   TASK_PRIORITY_INVALID: 'Độ ưu tiên task phải là một trong [low, medium, high]',
+  TASK_TYPE_INVALID:
+    'Loại công việc phải là một trong [task, story, bug, subtask, asset, epic, research, other]',
   TASK_CREATED_BY_REQUIRED: 'created_by là bắt buộc',
   TASK_USER_ALREADY_ASSIGNED: 'Người dùng đã được gán cho task này',
   TASK_USER_NOT_ASSIGNED: 'Người dùng chưa được gán cho task này',

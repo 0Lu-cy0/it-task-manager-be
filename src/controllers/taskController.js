@@ -19,7 +19,7 @@ const updateTask = async (req, res, next) => {
   try {
     const { id } = req.params
     const dataUpdate = req.body
-    const result = await taskService.updateTask(id, dataUpdate)
+    const result = await taskService.updateTask(id, dataUpdate, req.user._id)
 
     return res.status(StatusCodes.OK).json({
       status: 'success',
@@ -34,7 +34,7 @@ const updateTask = async (req, res, next) => {
 const deleteTask = async (req, res, next) => {
   try {
     const { id } = req.params
-    await taskService.deleteTask(id)
+    await taskService.deleteTask(id, req.user._id)
 
     return res.status(StatusCodes.OK).json({
       status: 'success',
@@ -91,7 +91,11 @@ const assignTask = async (req, res, next) => {
   try {
     const { id } = req.params
     const dataAssign = req.body
-    const result = await taskService.assignTask(id, { ...dataAssign, assigned_by: req.user._id })
+    const result = await taskService.assignTask(
+      id,
+      { ...dataAssign, assigned_by: req.user._id },
+      req.user._id
+    )
 
     return res.status(StatusCodes.OK).json({
       status: 'success',
@@ -107,7 +111,7 @@ const unassignTask = async (req, res, next) => {
   try {
     const { id } = req.params
     const dataUnassign = req.body
-    const result = await taskService.unassignTask(id, dataUnassign)
+    const result = await taskService.unassignTask(id, dataUnassign, req.user._id)
 
     return res.status(StatusCodes.OK).json({
       status: 'success',
@@ -123,7 +127,7 @@ const updateTaskStatus = async (req, res, next) => {
   try {
     const { id } = req.params
     const dataUpdate = req.body
-    const result = await taskService.updateTaskStatus(id, dataUpdate)
+    const result = await taskService.updateTaskStatus(id, dataUpdate, req.user._id)
 
     return res.status(StatusCodes.OK).json({
       status: 'success',

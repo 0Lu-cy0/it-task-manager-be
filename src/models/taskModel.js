@@ -8,6 +8,12 @@ const TASK_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema(
     description: { type: String, default: null },
     status: { type: String, required: true, enum: ['todo', 'in_progress', 'testing', 'completed'] },
     priority: { type: String, required: true, enum: ['low', 'medium', 'high'] },
+    type: {
+      type: String,
+      enum: ['task', 'story', 'bug', 'subtask', 'asset', 'epic', 'research', 'other'],
+      default: 'task',
+      index: true,
+    },
     project_id: { type: mongoose.Schema.Types.ObjectId, ref: 'projects', required: true },
     columnId: { type: mongoose.Schema.Types.ObjectId, ref: 'column', index: true }, // relation canonical
     created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true },
