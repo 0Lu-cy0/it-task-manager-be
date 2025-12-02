@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trello-backend
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+      - '7700:7700'
+    environment:
+      - NODE_ENV=production
+      - BUILD_MODE=production
+      - MONGODB_URI=${MONGODB_URI}
+      - DATABASE_NAME=${DATABASE_NAME}
+      - APP_HOST=0.0.0.0
+      - APP_PORT=3000
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_SECRET_KEY_REFRESH=${JWT_SECRET_KEY_REFRESH}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
+      - CLIENT_URL=${CLIENT_URL}
+      - MEILISEARCH_API_KEY=${MEILISEARCH_API_KEY}
+      - MEILISEARCH_HOST=http://localhost:7700
+      - AUTHOR=${AUTHOR}
+    volumes:
+      - meilisearch-data:/app/data.ms
+    networks:
+      - trello-network
+
+volumes:
+  meilisearch-data:
+
+networks:
+  trello-network:
+    driver: bridge
