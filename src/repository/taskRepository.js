@@ -127,6 +127,19 @@ const updateById = async (taskId, updateData, options = {}) => {
     .exec()
 }
 
+const findByIds = async (taskIds = []) => {
+  if (!Array.isArray(taskIds) || taskIds.length === 0) {
+    return []
+  }
+
+  return await taskModel
+    .find({ _id: { $in: taskIds }, _destroy: false })
+    .populate('assignees.user_id', 'username full_name avatar_url')
+    .populate('created_by', 'username full_name')
+    .lean()
+    .exec()
+}
+
 export const taskRepository = {
   createTask,
   updateTask,
@@ -139,4 +152,5 @@ export const taskRepository = {
   findByColumnId,
   deleteByColumnId,
   updateById,
+  findByIds,
 }

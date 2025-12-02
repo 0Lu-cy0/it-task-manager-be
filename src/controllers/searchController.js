@@ -10,7 +10,12 @@ const globalSearch = async (req, res, next) => {
 
     res.status(200).json({
       status: 'success',
-      data: results,
+      data: {
+        projects: results.projects,
+        tasks: results.tasks,
+        users: results.users,
+      },
+      meta: results.meta,
       query: q,
     })
   } catch (error) {
@@ -27,7 +32,8 @@ const searchProjects = async (req, res, next) => {
 
     res.status(200).json({
       status: 'success',
-      data: results,
+      data: results.items,
+      meta: results.meta,
     })
   } catch (error) {
     next(error)
@@ -43,7 +49,8 @@ const searchTasks = async (req, res, next) => {
 
     res.status(200).json({
       status: 'success',
-      data: results,
+      data: results.items,
+      meta: results.meta,
     })
   } catch (error) {
     next(error)
@@ -59,7 +66,44 @@ const searchUsers = async (req, res, next) => {
 
     res.status(200).json({
       status: 'success',
-      data: results,
+      data: results.items,
+      meta: results.meta,
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+const parseArrayParam = value => {
+  if (!value) return []
+  if (Array.isArray(value)) return value.filter(Boolean)
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map(item => item.trim())
+      .filter(Boolean)
+  }
+  return []
+}
+
+const searchBoard = async (req, res, next) => {
+  try {
+    const { projectId } = req.params
+    const { q = '', dueEnd, priority } = req.query
+    const userId = req.user._id.toString()
+
+    const filters = {
+      dueEnd: typeof dueEnd === 'string' ? dueEnd : undefined,
+      priorityFilter: parseArrayParam(priority),
+    }
+
+    const results = await searchService.searchBoard(projectId, userId, q, filters)
+
+    res.status(200).json({
+      status: 'success',
+      data: results.columns,
+      meta: results.meta,
+      query: q,
     })
   } catch (error) {
     next(error)
@@ -71,4 +115,5 @@ export const searchController = {
   searchProjects,
   searchTasks,
   searchUsers,
+  searchBoard,
 }
