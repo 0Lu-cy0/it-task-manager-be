@@ -37,28 +37,7 @@ const getAllLogs = async (page = 1, limit = 50, filters = {}) => {
   }
 }
 
-/**
- * Lấy logs theo user ID
- */
-const getLogsByUserId = async (userId, page = 1, limit = 50) => {
-  return await getAllLogs(page, limit, { user: userId })
-}
-
-/**
- * Tìm log theo ID
- */
-const findLogById = async id => {
-  return await serverLogModel
-    .findOne({ _id: id, _destroy: false })
-    .populate('user', 'email full_name avatar_url department')
-    .populate('project', 'project_name')
-    .lean()
-    .exec()
-}
-
 export const serverLogRepository = {
   createLog,
   getAllLogs,
-  getLogsByUserId,
-  findLogById,
 }
