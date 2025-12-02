@@ -52,6 +52,7 @@ const createTask = async data => {
     }
     return task
   } catch (error) {
+    await session.abortTransaction()
     throw error
   } finally {
     session.endSession()
@@ -80,6 +81,7 @@ const updateTask = async (taskId, updateData, userId) => {
     }
     return updatedTask
   } catch (error) {
+    await session.abortTransaction()
     throw error
   } finally {
     session.endSession()
@@ -112,6 +114,7 @@ const deleteTask = async (taskId, userId) => {
     }
     return true
   } catch (error) {
+    await session.abortTransaction()
     throw error
   } finally {
     session.endSession()
@@ -151,15 +154,21 @@ const assignTask = async (taskId, assignData, actorId) => {
       await syncTaskToMeili(updatedTask)
     })
     if (updatedTask && actorId) {
-      await logTaskActivity(actorId, updatedTask.project_id, `Assigned user ${assignData.user_id} to task "${updatedTask.title}"`, {
-        type: 'task_assigned',
-        taskId: updatedTask._id,
-        assigneeId: assignData.user_id,
-        roleId: assignData.role_id,
-      })
+      await logTaskActivity(
+        actorId,
+        updatedTask.project_id,
+        `Assigned user ${assignData.user_id} to task "${updatedTask.title}"`,
+        {
+          type: 'task_assigned',
+          taskId: updatedTask._id,
+          assigneeId: assignData.user_id,
+          roleId: assignData.role_id,
+        }
+      )
     }
     return updatedTask
   } catch (error) {
+    await session.abortTransaction()
     throw error
   } finally {
     session.endSession()
@@ -186,14 +195,20 @@ const unassignTask = async (taskId, assignData, actorId) => {
       await syncTaskToMeili(updatedTask)
     })
     if (updatedTask && actorId) {
-      await logTaskActivity(actorId, updatedTask.project_id, `Removed user ${assignData.user_id} from task "${updatedTask.title}"`, {
-        type: 'task_unassigned',
-        taskId: updatedTask._id,
-        assigneeId: assignData.user_id,
-      })
+      await logTaskActivity(
+        actorId,
+        updatedTask.project_id,
+        `Removed user ${assignData.user_id} from task "${updatedTask.title}"`,
+        {
+          type: 'task_unassigned',
+          taskId: updatedTask._id,
+          assigneeId: assignData.user_id,
+        }
+      )
     }
     return updatedTask
   } catch (error) {
+    await session.abortTransaction()
     throw error
   } finally {
     session.endSession()
@@ -234,6 +249,7 @@ const updateTaskStatus = async (taskId, data, actorId) => {
     }
     return updatedTask
   } catch (error) {
+    await session.abortTransaction()
     throw error
   } finally {
     session.endSession()
