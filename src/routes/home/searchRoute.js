@@ -26,4 +26,8 @@ router.get('/tasks', searchController.searchTasks)
 // GET /search/users?q=keyword
 router.get('/users', searchController.searchUsers)
 
+// Tìm kiếm theo board (columns + tasks)
+// GET /search/board/:projectId?q=keyword
+router.get('/board/:projectId', searchController.searchBoard)
+
 export const APIs_search = router

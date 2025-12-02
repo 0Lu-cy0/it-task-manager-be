@@ -50,12 +50,40 @@ export const setupMeiliIndexes = async () => {
   )
 }
 
+const normalizeToArray = value => {
+  if (!value) return []
+  if (Array.isArray(value)) return value.filter(Boolean)
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map(item => item.trim())
+      .filter(Boolean)
+  }
+  return []
+}
+
+const buildOrClause = (field, values) => {
+  if (!Array.isArray(values) || values.length === 0) return null
+  if (values.length === 1) return `${field} = "${values[0]}"`
+  const clauses = values.map(value => `${field} = "${value}"`).join(' OR ')
+  return `(${clauses})`
+}
+
 export const buildMeiliFilters = filters => {
   const conditions = []
 
-  if (filters.status) conditions.push(`status = "${filters.status}"`)
-  if (filters.priority) conditions.push(`priority = "${filters.priority}"`)
-  if (filters.project_id) conditions.push(`project_id = "${filters.project_id}"`)
+  const statusValues = normalizeToArray(filters.status)
+  const priorityValues = normalizeToArray(filters.priority)
+  const projectValues = normalizeToArray(filters.project_id)
+
+  const statusClause = buildOrClause('status', statusValues)
+  if (statusClause) conditions.push(statusClause)
+
+  const priorityClause = buildOrClause('priority', priorityValues)
+  if (priorityClause) conditions.push(priorityClause)
+
+  const projectClause = buildOrClause('project_id', projectValues)
+  if (projectClause) conditions.push(projectClause)
 
   return conditions
 }

@@ -5,6 +5,9 @@ import { projectRepository } from '~/repository/projectRepository'
 import { taskRepository } from '~/repository/taskRepository'
 import { authRepository } from '~/repository/authRepository'
 import { toProjectDocument, toTaskDocument, toUserDocument } from '~/repository/searchRepository'
+import { columnService } from '~/services/columnService'
+import ApiError from '~/utils/APIError'
+import { StatusCodes } from 'http-status-codes'
 
 const DEFAULT_LIMIT = 20
 const DEFAULT_OFFSET = 0
@@ -52,6 +55,31 @@ const formatSearchResponse = (meiliResponse = {}, entities = []) => {
     items: entities,
     meta,
   }
+}
+
+const normalizeObjectId = value => {
+  if (!value) return null
+  if (typeof value === 'string') return value
+  if (typeof value.toString === 'function') return value.toString()
+  if (value._id && typeof value._id.toString === 'function') return value._id.toString()
+  return null
+}
+
+const userCanAccessProject = (project, userId) => {
+  if (!project) return false
+  if (project.visibility === 'public') return true
+  const ownerId = normalizeObjectId(project.created_by)
+  if (ownerId && ownerId === userId) return true
+  const members = Array.isArray(project.members) ? project.members : []
+  return members.some(member => normalizeObjectId(member.user_id) === userId)
+}
+
+const toEndOfDay = value => {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  date.setHours(23, 59, 59, 999)
+  return date
 }
 
 const ensureProjectNameSearchableAttribute = async index => {
@@ -169,6 +197,115 @@ const globalSearch = async (query = '', userId, pagination = {}) => {
   }
 }
 
+const searchBoard = async (projectId, userId, query = '', options = {}) => {
+  if (!projectId) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'projectId is required')
+  }
+
+  const trimmedQuery = (query || '').trim()
+  const normalizedQuery = trimmedQuery.toLowerCase()
+  const priorityFilter = Array.isArray(options.priorityFilter)
+    ? options.priorityFilter.map(value => value.toLowerCase()).filter(Boolean)
+    : []
+  const dueEndDate = toEndOfDay(options.dueEnd)
+
+  const hasPriorityFilter = priorityFilter.length > 0
+  const hasDueFilter = Boolean(dueEndDate)
+  const hasQuery = Boolean(normalizedQuery)
+
+  if (!hasQuery && !hasPriorityFilter && !hasDueFilter) {
+    return {
+      columns: [],
+      meta: {
+        query: '',
+        totalColumns: 0,
+        totalCards: 0,
+        matchedColumns: 0,
+        matchedCards: 0,
+      },
+    }
+  }
+
+  const project = await projectRepository.findById(projectId)
+  if (!project) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy dự án')
+  }
+
+  if (!userCanAccessProject(project, userId)) {
+    throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền truy cập dự án này')
+  }
+
+  const columnsWithCards = await columnService.getColumnsByProject(projectId)
+
+  const matchedColumns = []
+  let matchedCardsCount = 0
+
+  columnsWithCards.forEach(column => {
+    const cards = Array.isArray(column.cards) ? column.cards : []
+    const filteredCards = cards.filter(card => {
+      if (hasPriorityFilter) {
+        const cardPriority = (card.priority || '').toLowerCase()
+        if (!priorityFilter.includes(cardPriority)) return false
+      }
+
+      if (hasDueFilter) {
+        if (!card.due_date) return false
+        const dueDate = new Date(card.due_date)
+        if (Number.isNaN(dueDate.getTime())) return false
+        if (dueEndDate && dueDate > dueEndDate) return false
+      }
+
+      return true
+    })
+
+    if (!hasQuery && filteredCards.length === 0) {
+      return
+    }
+
+    const columnMatched = hasQuery
+      ? (column.title || '').toLowerCase().includes(normalizedQuery)
+      : false
+
+    const cardsMatched = hasQuery
+      ? filteredCards.filter(card =>
+        (card.title || card.name || '').toLowerCase().includes(normalizedQuery)
+      )
+      : filteredCards
+
+    if (hasQuery && !columnMatched && cardsMatched.length === 0) {
+      return
+    }
+
+    const visibleCards = columnMatched ? filteredCards : cardsMatched
+    matchedCardsCount += visibleCards.length
+
+    matchedColumns.push({
+      ...column,
+      cards: visibleCards,
+      cardOrderIds: visibleCards.map(card => normalizeObjectId(card._id)).filter(Boolean),
+      matchMeta: {
+        columnMatched,
+        cardsMatched: cardsMatched.map(card => normalizeObjectId(card._id)).filter(Boolean),
+      },
+    })
+  })
+
+  return {
+    columns: matchedColumns,
+    meta: {
+      query: trimmedQuery,
+      totalColumns: matchedColumns.length,
+      totalCards: matchedCardsCount,
+      matchedColumns: matchedColumns.length,
+      matchedCards: matchedCardsCount,
+      filters: {
+        priority: priorityFilter,
+        dueEnd: dueEndDate ? dueEndDate.toISOString() : null,
+      },
+    },
+  }
+}
+
 const syncData = async () => {
   const meiliClient = getMeiliClient()
 
@@ -204,5 +341,6 @@ export const searchService = {
   searchTasks,
   globalSearch,
   searchUsers,
+  searchBoard,
   syncData,
 }
