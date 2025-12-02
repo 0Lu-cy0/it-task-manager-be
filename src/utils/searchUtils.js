@@ -3,29 +3,51 @@ export const setupMeiliIndexes = async () => {
   const { getMeiliClient } = await import('~/config/meilisearch')
   const meiliClient = getMeiliClient()
 
-  // Setup Projects index
+  const waitForTask = async (index, taskPromise) => {
+    const task = await taskPromise
+    const taskUid = task?.taskUid ?? task?.updateId
+    if (!taskUid) return
+    if (typeof index.waitForTask === 'function') {
+      await index.waitForTask(taskUid)
+      return
+    }
+    if (typeof meiliClient.waitForTask === 'function') {
+      await meiliClient.waitForTask(taskUid)
+    }
+  }
+
+  // Setup Projects index (restrict search to the `name` field)
   const projectsIndex = meiliClient.index('projects')
-  await projectsIndex.updateSettings({
-    searchableAttributes: ['name', 'description'],
-    filterableAttributes: ['status', 'priority', 'members.user_id', 'visibility'],
-    sortableAttributes: ['created_at', 'name'],
-  })
+  await waitForTask(
+    projectsIndex,
+    projectsIndex.updateSettings({
+      searchableAttributes: ['name'],
+      filterableAttributes: ['status', 'priority', 'members.user_id', 'visibility'],
+      sortableAttributes: ['created_at', 'name'],
+    })
+  )
 
   // Setup Tasks index
   const tasksIndex = meiliClient.index('tasks')
-  await tasksIndex.updateSettings({
-    searchableAttributes: ['title', 'description', 'tags'],
-    filterableAttributes: ['status', 'priority', 'project_id', 'assignees.user_id'],
-    sortableAttributes: ['created_at', 'due_date'],
-  })
+  await waitForTask(
+    tasksIndex,
+    tasksIndex.updateSettings({
+      searchableAttributes: ['title', 'description', 'tags'],
+      filterableAttributes: ['status', 'priority', 'project_id', 'assignees.user_id'],
+      sortableAttributes: ['created_at', 'due_date'],
+    })
+  )
 
   // Setup Users index
   const usersIndex = meiliClient.index('users')
-  await usersIndex.updateSettings({
-    searchableAttributes: ['displayName', 'email'],
-    filterableAttributes: [],
-    sortableAttributes: ['createdAt'],
-  })
+  await waitForTask(
+    usersIndex,
+    usersIndex.updateSettings({
+      searchableAttributes: ['displayName', 'email'],
+      filterableAttributes: [],
+      sortableAttributes: ['createdAt'],
+    })
+  )
 }
 
 export const buildMeiliFilters = filters => {

@@ -4,9 +4,23 @@ import { buildMeiliFilters } from '~/utils/searchUtils'
 import { projectRepository } from '~/repository/projectRepository'
 import { taskRepository } from '~/repository/taskRepository'
 import { authRepository } from '~/repository/authRepository'
+import { toProjectDocument, toTaskDocument, toUserDocument } from '~/repository/searchRepository'
 
 const DEFAULT_LIMIT = 20
 const DEFAULT_OFFSET = 0
+let projectSearchSettingsEnsured = false
+
+const waitForIndexTask = async (index, taskUid) => {
+  if (!taskUid) return
+  if (typeof index.waitForTask === 'function') {
+    await index.waitForTask(taskUid)
+    return
+  }
+  const client = getMeiliClient()
+  if (typeof client.waitForTask === 'function') {
+    await client.waitForTask(taskUid)
+  }
+}
 
 const extractId = hit => {
   if (!hit) return null
@@ -40,6 +54,30 @@ const formatSearchResponse = (meiliResponse = {}, entities = []) => {
   }
 }
 
+const ensureProjectNameSearchableAttribute = async index => {
+  if (projectSearchSettingsEnsured) return
+
+  const settings = await index.getSettings()
+  const searchableAttributes = settings?.searchableAttributes || []
+  const isAlreadyNameOnly = searchableAttributes.length === 1 && searchableAttributes[0] === 'name'
+
+  if (!isAlreadyNameOnly) {
+    const task = await index.updateSettings({ searchableAttributes: ['name'] })
+    const taskUid = task?.taskUid ?? task?.updateId
+    await waitForIndexTask(index, taskUid)
+  }
+
+  projectSearchSettingsEnsured = true
+}
+
+const addDocumentsAndWait = async (index, documents) => {
+  if (!Array.isArray(documents) || documents.length === 0) return null
+  const task = await index.addDocuments(documents, { primaryKey: 'id' })
+  const taskUid = task?.taskUid ?? task?.updateId
+  await waitForIndexTask(index, taskUid)
+  return taskUid
+}
+
 const searchUsers = async (query = '', _userId, filters = {}) => {
   void _userId
   const meiliClient = getMeiliClient()
@@ -62,6 +100,8 @@ const searchUsers = async (query = '', _userId, filters = {}) => {
 const searchProjects = async (query = '', userId, filters = {}) => {
   const meiliClient = getMeiliClient()
   const index = meiliClient.index('projects')
+
+  await ensureProjectNameSearchableAttribute(index)
 
   const visibilityFilter = `(members.user_id = "${userId}" OR visibility = "public")`
   const additionalFilters = buildMeiliFilters(filters)
@@ -129,9 +169,40 @@ const globalSearch = async (query = '', userId, pagination = {}) => {
   }
 }
 
+const syncData = async () => {
+  const meiliClient = getMeiliClient()
+
+  const [projects, tasks, users] = await Promise.all([
+    projectRepository.getAll({ _destroy: false }),
+    taskRepository.findTasks({}),
+    authRepository.findAllActiveUsers(),
+  ])
+
+  const projectDocs = projects.map(toProjectDocument).filter(Boolean)
+  const taskDocs = tasks.map(toTaskDocument).filter(Boolean)
+  const userDocs = users.map(toUserDocument).filter(Boolean)
+
+  const projectIndex = meiliClient.index('projects')
+  await ensureProjectNameSearchableAttribute(projectIndex)
+  await addDocumentsAndWait(projectIndex, projectDocs)
+
+  const taskIndex = meiliClient.index('tasks')
+  await addDocumentsAndWait(taskIndex, taskDocs)
+
+  const userIndex = meiliClient.index('users')
+  await addDocumentsAndWait(userIndex, userDocs)
+
+  return {
+    projects: projectDocs.length,
+    tasks: taskDocs.length,
+    users: userDocs.length,
+  }
+}
+
 export const searchService = {
   searchProjects,
   searchTasks,
   globalSearch,
   searchUsers,
+  syncData,
 }

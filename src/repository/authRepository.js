@@ -74,6 +74,18 @@ const findUsersByIds = async ids => {
     .exec()
 }
 
+const findAllActiveUsers = async (projection = null) => {
+  const query = authModel.find({ _destroy: false })
+
+  if (projection) {
+    query.select(projection)
+  } else {
+    query.select('-password -resetToken -resetTokenExpiry')
+  }
+
+  return await query.lean().exec()
+}
+
 /**
  * Updates a user by ID
  */
@@ -99,6 +111,7 @@ export const authRepository = {
   findUserByEmail,
   findUserById,
   findUsersByIds,
+  findAllActiveUsers,
   updateUserById,
   findUserByResetToken,
   saveRefreshToken,
