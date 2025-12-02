@@ -62,6 +62,18 @@ const findUserById = async id => {
   return await authModel.findOne({ _id: id, _destroy: false }).lean().exec()
 }
 
+const findUsersByIds = async ids => {
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return []
+  }
+
+  return await authModel
+    .find({ _id: { $in: ids }, _destroy: false })
+    .select('-password -resetToken -resetTokenExpiry')
+    .lean()
+    .exec()
+}
+
 /**
  * Updates a user by ID
  */
@@ -86,6 +98,7 @@ export const authRepository = {
   createUser,
   findUserByEmail,
   findUserById,
+  findUsersByIds,
   updateUserById,
   findUserByResetToken,
   saveRefreshToken,

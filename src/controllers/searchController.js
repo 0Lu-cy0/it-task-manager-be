@@ -10,7 +10,12 @@ const globalSearch = async (req, res, next) => {
 
     res.status(200).json({
       status: 'success',
-      data: results,
+      data: {
+        projects: results.projects,
+        tasks: results.tasks,
+        users: results.users,
+      },
+      meta: results.meta,
       query: q,
     })
   } catch (error) {
@@ -27,7 +32,8 @@ const searchProjects = async (req, res, next) => {
 
     res.status(200).json({
       status: 'success',
-      data: results,
+      data: results.items,
+      meta: results.meta,
     })
   } catch (error) {
     next(error)
@@ -43,7 +49,8 @@ const searchTasks = async (req, res, next) => {
 
     res.status(200).json({
       status: 'success',
-      data: results,
+      data: results.items,
+      meta: results.meta,
     })
   } catch (error) {
     next(error)
@@ -59,7 +66,8 @@ const searchUsers = async (req, res, next) => {
 
     res.status(200).json({
       status: 'success',
-      data: results,
+      data: results.items,
+      meta: results.meta,
     })
   } catch (error) {
     next(error)
