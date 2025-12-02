@@ -12,18 +12,22 @@ router.use(authMiddleware.isAuthenticated)
 
 // Tìm kiếm toàn bộ (projects, tasks, users)
 // GET /search?q=keyword
-router.get('/search', searchController.globalSearch)
+router.get('/', searchController.globalSearch)
 
 // Tìm kiếm chỉ projects
 // GET /search/projects?q=keyword
-router.get('/search/projects', searchController.searchProjects)
+router.get('/projects', searchController.searchProjects)
 
 // Tìm kiếm chỉ tasks
 // GET /search/tasks?q=keyword
-router.get('/search/tasks', searchController.searchTasks)
+router.get('/tasks', searchController.searchTasks)
 
 // Tìm kiếm chỉ users
 // GET /search/users?q=keyword
-router.get('/search/users', searchController.searchUsers)
+router.get('/users', searchController.searchUsers)
+
+// Tìm kiếm theo board (columns + tasks)
+// GET /search/board/:projectId?q=keyword
+router.get('/board/:projectId', searchController.searchBoard)
 
 export const APIs_search = router

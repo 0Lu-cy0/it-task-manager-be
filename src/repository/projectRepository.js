@@ -287,6 +287,21 @@ const findById = async (id, options = {}) => {
   return project
 }
 
+const findByIds = async (ids = [], options = {}) => {
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return []
+  }
+
+  return await projectModel
+    .find({ _id: { $in: ids }, _destroy: false })
+    .session(options.session || null)
+    .populate('created_by', 'name email')
+    .populate('members.user_id', 'name email')
+    .populate('members.project_role_id', 'name')
+    .lean()
+    .exec()
+}
+
 export const projectRepository = {
   addColumn,
   removeColumn,
@@ -302,4 +317,5 @@ export const projectRepository = {
   checkUserPermission,
   updateFreeMode,
   findById,
+  findByIds,
 }
