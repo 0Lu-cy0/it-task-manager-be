@@ -44,7 +44,7 @@ const options = {
   apis: [
     './src/routes/**/*.js',
     './src/models/*.js',
-    './src/swagger/*.yaml',
+    './src/swagger/swagger.yaml',
   ],
 }
 
