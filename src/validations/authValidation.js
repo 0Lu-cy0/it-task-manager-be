@@ -31,9 +31,12 @@ const USER_COLLECTION_SCHEMA_JOI = Joi.object({
   avatar_url: Joi.string().uri().allow(null, '').messages({
     'string.uri': MESSAGES.AVATAR_INVALID,
   }),
-  phone: Joi.string().pattern(/^[0-9+()-\s]{8,20}$/).allow(null, '').messages({
-    'string.pattern.base': MESSAGES.PHONE_INVALID,
-  }),
+  phone: Joi.string()
+    .pattern(/^[0-9+()-\s]{8,20}$/)
+    .allow(null, '')
+    .messages({
+      'string.pattern.base': MESSAGES.PHONE_INVALID,
+    }),
   department: Joi.string().max(50).allow(null, '').messages({
     'string.max': MESSAGES.DEPARTMENT_MAX,
   }),
@@ -102,7 +105,7 @@ const loginSchema = Joi.object({
  * @description Tách riêng để kiểm soát chặt chẽ dữ liệu đầu vào
  * @type {Joi.ObjectSchema}
  */
-const validateResetPasswordRequest = async (data) => {
+const validateResetPasswordRequest = async data => {
   const schema = Joi.object({
     email: Joi.string().email().required().messages({
       'string.email': MESSAGES.EMAIL_INVALID,
@@ -121,10 +124,10 @@ const validateResetPasswordRequest = async (data) => {
  * @description Tách riêng để kiểm soát chặt chẽ dữ liệu đầu vào
  * @type {Joi.ObjectSchema}
  */
-const validateResetPasswordConfirm = async (data) => {
+const validateResetPasswordConfirm = async data => {
   const schema = Joi.object({
     resetToken: Joi.string().required().messages({
-      'any.required': 'Token đặt lại mật khẩu là bắt buộc',
+      'any.required': MESSAGES.RESET_TOKEN_REQUIRED,
     }),
     newPassword: Joi.string()
       .min(8)
@@ -136,13 +139,10 @@ const validateResetPasswordConfirm = async (data) => {
         'string.pattern.base': MESSAGES.PASSWORD_PATTERN,
         'any.required': MESSAGES.PASSWORD_REQUIRED,
       }),
-    confirmPassword: Joi.string()
-      .valid(Joi.ref('newPassword'))
-      .required()
-      .messages({
-        'any.only': MESSAGES.PASSWORD_MISMATCH,
-        'any.required': MESSAGES.PASSWORD_REQUIRED,
-      }),
+    confirmPassword: Joi.string().valid(Joi.ref('newPassword')).required().messages({
+      'any.only': MESSAGES.PASSWORD_MISMATCH,
+      'any.required': MESSAGES.PASSWORD_REQUIRED,
+    }),
   })
   try {
     return await schema.validateAsync(data, { abortEarly: false })
@@ -157,7 +157,7 @@ const validateResetPasswordConfirm = async (data) => {
  * @returns {Object} Dữ liệu đã được xác thực
  * @throws {ApiError} Nếu dữ liệu không hợp lệ
  */
-const validateBeforeRegister = async (data) => {
+const validateBeforeRegister = async data => {
   try {
     return await registerSchema.validateAsync(data, { abortEarly: false })
   } catch (error) {
@@ -171,7 +171,7 @@ const validateBeforeRegister = async (data) => {
  * @returns {Object} Dữ liệu đã được xác thực
  * @throws {ApiError} Nếu dữ liệu không hợp lệ
  */
-const validateBeforeLogin = async (data) => {
+const validateBeforeLogin = async data => {
   try {
     return await loginSchema.validateAsync(data, { abortEarly: false })
   } catch (error) {
@@ -185,19 +185,43 @@ const validateBeforeLogin = async (data) => {
  * @returns {Object} Dữ liệu đã được xác thực
  * @throws {ApiError} Nếu dữ liệu không hợp lệ
  */
-const validateProfileUpdate = async (data) => {
+const validateProfileUpdate = async data => {
   const schema = Joi.object({
     full_name: Joi.string().min(3).max(50).messages({
       // Không required vì là cập nhật
       'string.min': MESSAGES.NAME_MIN,
       'string.max': MESSAGES.NAME_MAX,
     }),
+    cccd_number: Joi.string().allow(null, '').messages({
+      'string.base': 'Số CCCD không hợp lệ',
+    }),
+    birth_date: Joi.date().allow(null).messages({
+      'date.base': 'Ngày sinh không hợp lệ',
+    }),
+    gender: Joi.string().valid('Nam', 'Nữ', 'Khác').allow(null, '').messages({
+      'any.only': 'Giới tính không hợp lệ',
+    }),
+    nationality: Joi.string().allow(null, '').messages({
+      'string.base': 'Quốc tịch không hợp lệ',
+    }),
+    expiry_date: Joi.date().allow(null).messages({
+      'date.base': 'Ngày hết hạn không hợp lệ',
+    }),
+    hometown: Joi.string().allow(null, '').messages({
+      'string.base': 'Quê quán không hợp lệ',
+    }),
+    residence_address: Joi.string().allow(null, '').messages({
+      'string.base': 'Nơi thường trú không hợp lệ',
+    }),
     avatar_url: Joi.string().uri().allow(null, '').messages({
       'string.uri': MESSAGES.AVATAR_INVALID,
     }),
-    phone: Joi.string().pattern(/^[0-9+()-\s]{8,20}$/).allow(null, '').messages({
-      'string.pattern.base': MESSAGES.PHONE_INVALID,
-    }),
+    phone: Joi.string()
+      .pattern(/^[0-9+()-\s]{8,20}$/)
+      .allow(null, '')
+      .messages({
+        'string.pattern.base': MESSAGES.PHONE_INVALID,
+      }),
     department: Joi.string().max(50).allow(null, '').messages({
       'string.max': MESSAGES.DEPARTMENT_MAX,
     }),
@@ -219,7 +243,7 @@ const validateProfileUpdate = async (data) => {
  * @returns {Object} Dữ liệu đã được xác thực
  * @throws {ApiError} Nếu dữ liệu không hợp lệ
  */
-const validatePasswordChange = async (data) => {
+const validatePasswordChange = async data => {
   const schema = Joi.object({
     currentPassword: Joi.string().required().min(8).messages({
       'any.required': MESSAGES.PASSWORD_REQUIRED,
@@ -237,13 +261,10 @@ const validatePasswordChange = async (data) => {
         'any.required': MESSAGES.PASSWORD_REQUIRED,
         'any.invalid': MESSAGES.NEW_PASSWORD_DIFFRIENT,
       }),
-    confirmPassword: Joi.string()
-      .valid(Joi.ref('newPassword'))
-      .required()
-      .messages({
-        'any.only': MESSAGES.PASSWORD_MISMATCH,
-        'any.required': MESSAGES.PASSWORD_REQUIRED,
-      }),
+    confirmPassword: Joi.string().valid(Joi.ref('newPassword')).required().messages({
+      'any.only': MESSAGES.PASSWORD_MISMATCH,
+      'any.required': MESSAGES.PASSWORD_REQUIRED,
+    }),
   })
 
   try {

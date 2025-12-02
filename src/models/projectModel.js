@@ -3,39 +3,65 @@ import { projectRolesModel } from '~/models/projectRolesModel'
 
 export const PROJECT_COLLECTION_NAME = 'projects'
 
-const PROJECT_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema({
-  name: { type: String, required: true, minlength: 5, maxlength: 50, trim: true, index: true },
-  description: { type: String, default: null },
-  status: { type: String, required: true, enum: ['planning', 'in_progress', 'testing', 'completed'], index: true },
-  priority: { type: String, required: true, enum: ['low', 'medium', 'high'], index: true },
-  start_date: { type: Date, default: null },
-  end_date: {
-    type: Date,
-    default: null,
-    validate: {
-      validator: function (value) {
-        return !this.start_date || !value || value > this.start_date
+const PROJECT_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema(
+  {
+    name: { type: String, required: true, minlength: 5, maxlength: 50, trim: true, index: true },
+    description: { type: String, default: null },
+    status: {
+      type: String,
+      required: true,
+      enum: ['planning', 'in_progress', 'testing', 'completed'],
+      index: true,
+    },
+    columns: [{ type: mongoose.Schema.Types.ObjectId, ref: 'column' }],
+    columnOrderIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'column' }],
+    priority: { type: String, required: true, enum: ['low', 'medium', 'high'], index: true },
+    start_date: { type: Date, default: null },
+    end_date: {
+      type: Date,
+      default: null,
+      validate: {
+        validator: function (value) {
+          return !this.start_date || !value || value > this.start_date
+        },
+        message: 'Ngày kết thúc phải sau ngày bắt đầu',
       },
-      message: 'Ngày kết thúc phải sau ngày bắt đầu',
+    },
+    created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true, index: true },
+    members: {
+      type: [
+        {
+          user_id: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'users',
+            required: true,
+            index: true,
+          },
+          project_role_id: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'project_roles',
+            required: true,
+          },
+          joined_at: { type: Date, default: Date.now },
+          _id: false,
+        },
+      ],
+      default: [],
+    },
+    member_count: { type: Number, default: 0 },
+    last_activity: { type: Date, default: Date.now, index: true },
+    _destroy: { type: Boolean, default: false },
+    free_mode: { type: Boolean, default: false },
+    visibility: {
+      type: String,
+      required: true,
+      enum: ['private', 'public'],
+      default: 'private',
+      index: true,
     },
   },
-  created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true, index: true },
-  members: {
-    type: [
-      {
-        user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true, index: true },
-        project_role_id: { type: mongoose.Schema.Types.ObjectId, ref: 'project_roles', required: true },
-        joined_at: { type: Date, default: Date.now },
-        _id: false,
-      },
-    ],
-    default: [],
-  },
-  member_count: { type: Number, default: 0 },
-  last_activity: { type: Date, default: Date.now, index: true },
-  _destroy: { type: Boolean, default: false },
-  free_mode: { type: Boolean, default: false },
-}, { timestamps: true })
+  { timestamps: true }
+)
 
 /**
  * Middleware validate: check members
@@ -53,9 +79,12 @@ PROJECT_COLLECTION_SCHEMA_MONGOOSE.pre('validate', async function (next) {
   }
 
   // Check lead count
-  const leadRoleIds = (await projectRolesModel.find({ project_id: this._id, name: 'lead' }))
-    .map(role => role._id.toString())
-  const leadCount = this.members.filter(m => leadRoleIds.includes(m.project_role_id.toString())).length
+  const leadRoleIds = (await projectRolesModel.find({ project_id: this._id, name: 'lead' })).map(
+    role => role._id.toString()
+  )
+  const leadCount = this.members.filter(m =>
+    leadRoleIds.includes(m.project_role_id.toString())
+  ).length
   if (leadCount > 1) {
     return next(new Error('Chỉ được phép có tối đa một lead trong dự án'))
   }
@@ -94,13 +123,20 @@ PROJECT_COLLECTION_SCHEMA_MONGOOSE.pre('findOneAndUpdate', async function (next)
     const newUserIds = newMembers.map(m => m.user_id.toString())
     const existingUserIds = project.members.map(m => m.user_id.toString())
     if (newUserIds.some(id => existingUserIds.includes(id))) {
-      return next(new Error('Một user_id chỉ được phép xuất hiện một lần trong mảng members (Dòng 102)'))
+      return next(
+        new Error('Một user_id chỉ được phép xuất hiện một lần trong mảng members (Dòng 102)')
+      )
     }
 
-    const leadRoleIds = (await projectRolesModel.find({ project_id: project._id, name: 'lead' }))
-      .map(role => role._id.toString())
-    const currentLeads = project.members.filter(m => leadRoleIds.includes(m.project_role_id.toString())).length
-    const newLeads = newMembers.filter(m => leadRoleIds.includes(m.project_role_id.toString())).length
+    const leadRoleIds = (
+      await projectRolesModel.find({ project_id: project._id, name: 'lead' })
+    ).map(role => role._id.toString())
+    const currentLeads = project.members.filter(m =>
+      leadRoleIds.includes(m.project_role_id.toString())
+    ).length
+    const newLeads = newMembers.filter(m =>
+      leadRoleIds.includes(m.project_role_id.toString())
+    ).length
     if (currentLeads + newLeads > 1) {
       return next(new Error('Chỉ được phép có tối đa một lead trong dự án'))
     }
@@ -108,7 +144,6 @@ PROJECT_COLLECTION_SCHEMA_MONGOOSE.pre('findOneAndUpdate', async function (next)
 
   next()
 })
-
 
 /**
  * Virtual populate tasks
@@ -138,4 +173,7 @@ PROJECT_COLLECTION_SCHEMA_MONGOOSE.statics.safeAbortTransaction = async function
   }
 }
 
-export const projectModel = mongoose.model(PROJECT_COLLECTION_NAME, PROJECT_COLLECTION_SCHEMA_MONGOOSE)
+export const projectModel = mongoose.model(
+  PROJECT_COLLECTION_NAME,
+  PROJECT_COLLECTION_SCHEMA_MONGOOSE
+)

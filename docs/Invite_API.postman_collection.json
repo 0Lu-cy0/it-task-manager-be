@@ -1,0 +1,312 @@
+{
+  "info": {
+    "name": "Invite API - IT Task Manager",
+    "description": "Collection để test các API gửi và xử lý lời mời qua email",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8181",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "projectId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "roleId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "inviteId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Login (Get Token)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const response = pm.response.json();",
+              "    pm.collectionVariables.set('accessToken', response.accessToken);",
+              "    console.log('✅ Token saved:', response.accessToken);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"your-email@example.com\",\n  \"password\": \"your-password\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        },
+        "description": "Đăng nhập để lấy access token"
+      }
+    },
+    {
+      "name": "2. Get Projects (Get Project ID)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const projects = pm.response.json();",
+              "    if (projects.length > 0) {",
+              "        pm.collectionVariables.set('projectId', projects[0]._id);",
+              "        console.log('✅ First Project ID saved:', projects[0]._id);",
+              "    }",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/home/projects",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "home",
+            "projects"
+          ]
+        },
+        "description": "Lấy danh sách projects để lấy projectId"
+      }
+    },
+    {
+      "name": "3. Get Roles (Get Role ID)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const roles = pm.response.json();",
+              "    const memberRole = roles.find(r => r.name === 'member');",
+              "    if (memberRole) {",
+              "        pm.collectionVariables.set('roleId', memberRole._id);",
+              "        console.log('✅ Member Role ID saved:', memberRole._id);",
+              "    }",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/home/project-roles?projectId={{projectId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "home",
+            "project-roles"
+          ],
+          "query": [
+            {
+              "key": "projectId",
+              "value": "{{projectId}}"
+            }
+          ]
+        },
+        "description": "Lấy danh sách roles của project để lấy roleId"
+      }
+    },
+    {
+      "name": "4. Send Invite Email",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 201) {",
+              "    const response = pm.response.json();",
+              "    pm.collectionVariables.set('inviteId', response.invite._id);",
+              "    console.log('✅ Invite ID saved:', response.invite._id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test@example.com\",\n  \"roleId\": \"{{roleId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/home/invites/{{projectId}}/send-email",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "home",
+            "invites",
+            "{{projectId}}",
+            "send-email"
+          ]
+        },
+        "description": "Gửi lời mời qua email cho user"
+      }
+    },
+    {
+      "name": "5. Get My Invites",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/home/invites/my-invites",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "home",
+            "invites",
+            "my-invites"
+          ]
+        },
+        "description": "Xem danh sách lời mời của user đang đăng nhập"
+      }
+    },
+    {
+      "name": "6. Accept Invite",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/home/invites/{{inviteId}}/accept",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "home",
+            "invites",
+            "{{inviteId}}",
+            "accept"
+          ]
+        },
+        "description": "Chấp nhận lời mời (phải login bằng email được mời)"
+      }
+    },
+    {
+      "name": "7. Reject Invite",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/home/invites/{{inviteId}}/reject",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "home",
+            "invites",
+            "{{inviteId}}",
+            "reject"
+          ]
+        },
+        "description": "Từ chối lời mời (phải login bằng email được mời)"
+      }
+    },
+    {
+      "name": "8. Get Permanent Invite Link",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/home/invites/{{projectId}}/permanent",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "home",
+            "invites",
+            "{{projectId}}",
+            "permanent"
+          ]
+        },
+        "description": "Lấy link lời mời vĩnh viễn của project"
+      }
+    }
+  ]
+}

@@ -21,6 +21,35 @@ const USER_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema(
       maxlength: 50,
       default: null,
     },
+    cccd_number: {
+      type: String,
+      default: null,
+    },
+    birth_date: {
+      type: Date,
+      default: null,
+    },
+    gender: {
+      type: String,
+      enum: ['Nam', 'Nữ', 'Khác', null],
+      default: null,
+    },
+    nationality: {
+      type: String,
+      default: null,
+    },
+    expiry_date: {
+      type: Date,
+      default: null,
+    },
+    hometown: {
+      type: String,
+      default: null,
+    },
+    residence_address: {
+      type: String,
+      default: null,
+    },
     avatar_url: {
       type: String,
       default: null,
@@ -57,7 +86,7 @@ const USER_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema(
       default: false,
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 )
 
 export const authModel = mongoose.model(USER_COLLECTION_NAME, USER_COLLECTION_SCHEMA_MONGOOSE)

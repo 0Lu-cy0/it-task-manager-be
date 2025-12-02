@@ -12,7 +12,6 @@ const objectId = (value, helpers) => {
   return value
 }
 
-
 const BASE_INVITE_SCHEMA = Joi.object({
   email: Joi.string()
     .email({ tlds: { allow: false } })
@@ -22,19 +21,16 @@ const BASE_INVITE_SCHEMA = Joi.object({
     .messages({
       'string.email': MESSAGES.EMAIL_INVALID,
     }),
-  roleName: Joi.string()
-    .valid('viewer', 'member')
-    .optional()
-    .messages({
-      'any.only': MESSAGES.ROLE_NAME_INVALID,
-    }),
+  roleName: Joi.string().valid('member', 'lead').optional().messages({
+    'any.only': MESSAGES.ROLE_NAME_INVALID,
+  }),
 })
 
-const validateCreateInvite = async (data) => {
+const validateCreateInvite = async data => {
   const schema = BASE_INVITE_SCHEMA.append({
     invited_by: Joi.string().required().custom(objectId).messages({
-      'any.required': 'Yêu cầu cần có người tạo lời mời',
-      'any.custom': MESSAGES.OBJECT_ID_INVALID,
+      'any.required': 'Người tạo lời mời là bắt buộc',
+      'any.custom': MESSAGES.USER_ID_INVALID,
     }),
     invite_token: Joi.string().optional(),
   })
@@ -46,25 +42,19 @@ const validateCreateInvite = async (data) => {
   }
 }
 
-const validateInviteAction = async (data) => {
+const validateInviteAction = async data => {
   const schema = Joi.object({
     inviteId: Joi.string().required().custom(objectId).messages({
-      'any.required': 'Yêu cầu cần có lời mời',
-      'any.invalid': MESSAGES.OBJECT_ID_INVALID,
+      'any.required': MESSAGES.INVITE_ID_REQUIRED,
+      'any.custom': MESSAGES.INVITE_ID_INVALID,
     }),
-    action: Joi.string()
-      .valid('accept', 'reject')
-      .required()
-      .messages({
-        'any.required': 'Yêu cầu cần có action request',
-        'any.only': 'Action invalid',
-      }),
-    roleName: Joi.string()
-      .valid('viewer', 'member')
-      .optional()
-      .messages({
-        'any.only': MESSAGES.ROLE_NAME_INVALID,
-      }),
+    action: Joi.string().valid('accept', 'reject').required().messages({
+      'any.required': 'Action là bắt buộc',
+      'any.only': 'Action phải là "accept" hoặc "reject"',
+    }),
+    roleName: Joi.string().valid('member', 'lead').optional().messages({
+      'any.only': MESSAGES.ROLE_NAME_INVALID,
+    }),
   })
 
   try {
@@ -74,11 +64,11 @@ const validateInviteAction = async (data) => {
   }
 }
 
-const validateParams = async (data) => {
+const validateParams = async data => {
   const schema = Joi.object({
     projectId: Joi.string().required().custom(objectId).messages({
       'any.required': MESSAGES.PROJECT_ID_REQUIRED,
-      'any.invalid': MESSAGES.OBJECT_ID_INVALID,
+      'any.custom': MESSAGES.PROJECT_ID_INVALID,
     }),
     token: Joi.string().optional(),
   })
@@ -90,7 +80,31 @@ const validateParams = async (data) => {
   }
 }
 
-const validateUpdateRolePermissions = async (data) => {
+const validateSendInviteEmail = async data => {
+  const schema = Joi.object({
+    email: Joi.string()
+      .email({ tlds: { allow: false } })
+      .required()
+      .trim()
+      .lowercase()
+      .messages({
+        'string.email': MESSAGES.EMAIL_INVALID,
+        'any.required': MESSAGES.INVITE_EMAIL_REQUIRED,
+      }),
+    roleId: Joi.string().required().custom(objectId).messages({
+      'any.required': MESSAGES.ROLE_ID_REQUIRED,
+      'any.custom': MESSAGES.ROLE_ID_INVALID,
+    }),
+  })
+
+  try {
+    return await schema.validateAsync(data, { abortEarly: false })
+  } catch (error) {
+    throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, error.message)
+  }
+}
+
+const validateUpdateRolePermissions = async data => {
   const roleDocs = await projectRolesModel.find({ _destroy: false }, { name: 1 }).lean()
   if (!roleDocs.length) {
     throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -118,5 +132,6 @@ export const inviteValidate = {
   validateCreateInvite,
   validateInviteAction,
   validateParams,
+  validateSendInviteEmail,
   validateUpdateRolePermissions,
 }

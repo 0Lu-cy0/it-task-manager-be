@@ -3,11 +3,12 @@ import { permissionModel } from '~/models/permissionModel'
 import { ApiError } from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 import { projectModel } from '~/models/projectModel'
+import { MESSAGES } from '~/constants/messages'
 
 /**
  * Tìm danh sách roles theo projectId
  */
-const findByProjectId = async (projectId) => {
+const findByProjectId = async projectId => {
   return await projectRolesModel
     .find({ project_id: projectId, _destroy: false })
     .populate('permissions')
@@ -18,7 +19,7 @@ const findByProjectId = async (projectId) => {
 /**
  * Tìm role theo ID
  */
-const findRoleById = async (roleId) => {
+const findRoleById = async roleId => {
   return await projectRolesModel.findById(roleId).lean()
 }
 
@@ -30,13 +31,15 @@ const assignRoleToMember = async (projectId, memberId, roleId, options = {}) => 
     .findOneAndUpdate(
       { _id: projectId, 'members.user_id': memberId },
       { $set: { 'members.$.project_role_id': roleId } },
-      { new: true, ...options },
+      { new: true, ...options }
     )
     .populate('members.user_id', 'name email')
     .populate('members.project_role_id', 'name')
     .lean()
   if (!updatedProject) return null
-  const updatedMember = updatedProject.members.find((m) => m.user_id.toString() === memberId.toString())
+  const updatedMember = updatedProject.members.find(
+    m => m.user_id.toString() === memberId.toString()
+  )
   return updatedMember || null
 }
 
@@ -45,14 +48,11 @@ const assignRoleToMember = async (projectId, memberId, roleId, options = {}) => 
  */
 const findMemberById = async (projectId, memberId) => {
   const project = await projectModel
-    .findOne(
-      { _id: projectId, 'members.user_id': memberId },
-      { members: 1 },
-    )
+    .findOne({ _id: projectId, 'members.user_id': memberId }, { members: 1 })
     .populate('members.project_role_id', 'name')
     .lean()
   if (!project) return null
-  return project.members.find((m) => m.user_id.toString() === memberId.toString()) || null
+  return project.members.find(m => m.user_id.toString() === memberId.toString()) || null
 }
 
 /**
@@ -61,13 +61,13 @@ const findMemberById = async (projectId, memberId) => {
 const addPermissionToRole = async (roleId, permissionId, options = {}) => {
   const permission = await permissionModel.findOne({ _id: permissionId }).lean()
   if (!permission) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Permission không tồn tại')
+    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PERMISSION_NOT_FOUND)
   }
   return await projectRolesModel
     .findOneAndUpdate(
       { _id: roleId, _destroy: false },
       { $addToSet: { permissions: permissionId } },
-      { new: true, ...options },
+      { new: true, ...options }
     )
     .populate('permissions')
     .lean()
@@ -81,13 +81,13 @@ const addPermissionToRole = async (roleId, permissionId, options = {}) => {
 const removePermissionFromRole = async (roleId, permissionId, options = {}) => {
   const permission = await permissionModel.findOne({ _id: permissionId }).lean()
   if (!permission) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Permission không tồn tại')
+    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PERMISSION_NOT_FOUND)
   }
   return await projectRolesModel
     .findOneAndUpdate(
       { _id: roleId, _destroy: false },
       { $pull: { permissions: permissionId } },
-      { new: true, ...options },
+      { new: true, ...options }
     )
     .populate('permissions')
     .lean()
@@ -96,10 +96,13 @@ const removePermissionFromRole = async (roleId, permissionId, options = {}) => {
 /**
  * Lấy danh sách permissions của role
  */
-const getPermissionsOfRole = async (roleId) => {
-  const role = await projectRolesModel.findOne({ _id: roleId, _destroy: false }).populate('permissions').lean()
+const getPermissionsOfRole = async roleId => {
+  const role = await projectRolesModel
+    .findOne({ _id: roleId, _destroy: false })
+    .populate('permissions')
+    .lean()
   if (!role) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Role không tồn tại')
+    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.ROLE_NOT_FOUND)
   }
   return role.permissions
 }
@@ -113,7 +116,7 @@ const update = async (id, data, options = {}) => {
     .populate('permissions')
     .lean()
   if (!role) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Vai trò không tồn tại')
+    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.ROLE_NOT_FOUND)
   }
   return role
 }

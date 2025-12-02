@@ -4,18 +4,19 @@ import { refreshTokenModel } from '~/models/refreshTokenModel'
 /**
  * Creates a new user in the database
  */
-const createUser = async (data) => {
+const createUser = async data => {
   return await authModel.create(data)
 }
 
 /**
  * Finds a user by email
  */
-const findUserByEmail = async (email) => {
+const findUserByEmail = async email => {
   try {
     const user = await authModel.findOne({ email, _destroy: false }).lean().exec()
     return user
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error('❌ Error in findUserByEmail:', err)
     throw err // để service/controller bắt tiếp
   }
@@ -31,7 +32,7 @@ const saveRefreshToken = async (userId, refreshToken) => {
 }
 
 // Find refresh token
-const findRefreshToken = async (refreshToken) => {
+const findRefreshToken = async refreshToken => {
   return await refreshTokenModel.findOne({ token: refreshToken }).lean()
 }
 
@@ -42,22 +43,22 @@ const updateRefreshToken = async (oldToken, newToken) => {
     {
       token: newToken,
       expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    },
+    }
   )
 }
 
-const deleteRefreshToken = async (refreshToken) => {
+const deleteRefreshToken = async refreshToken => {
   await refreshTokenModel.deleteOne({ token: refreshToken })
 }
 
-const deleteRefreshTokenByUserId = async (userId) => {
+const deleteRefreshTokenByUserId = async userId => {
   await refreshTokenModel.deleteMany({ user_id: userId })
 }
 
 /**
  * Finds a user by ID
  */
-const findUserById = async (id) => {
+const findUserById = async id => {
   return await authModel.findOne({ _id: id, _destroy: false }).lean().exec()
 }
 
@@ -75,7 +76,7 @@ const updateUserById = async (id, data) => {
 /**
  * Finds a user by reset token
  */
-const findUserByResetToken = async (resetToken) => {
+const findUserByResetToken = async resetToken => {
   return await authModel
     .findOne({ resetToken, resetTokenExpiry: { $gt: Date.now() }, _destroy: false })
     .exec()

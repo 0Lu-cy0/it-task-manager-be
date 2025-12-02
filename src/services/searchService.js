@@ -15,8 +15,12 @@ export const searchProjects = async (query, userId, filters = {}) => {
   const meiliClient = getMeiliClient()
   const index = meiliClient.index('projects')
 
+  // User có thể search projects mà họ là member HOẶC projects public
+  const visibilityFilter = `(members.user_id = "${userId}" OR visibility = "public")`
+  const additionalFilters = buildMeiliFilters(filters)
+
   const searchResults = await index.search(query, {
-    filter: [`members.user_id = "${userId}"`, ...buildMeiliFilters(filters)],
+    filter: [visibilityFilter, ...additionalFilters],
     attributesToHighlight: ['name', 'description'],
     limit: 20,
   })

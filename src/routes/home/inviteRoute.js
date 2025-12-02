@@ -2,57 +2,61 @@ import express from 'express'
 import { inviteController } from '~/controllers/inviteController'
 import { authMiddleware } from '~/middlewares/authMiddleware'
 import { projectMiddleware } from '~/middlewares/projectMiddleware'
-import { inviteMiddleware } from '~/middlewares/inviteMiddleware'
-import rateLimit from 'express-rate-limit'
-
-const inviteLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 giờ
-  max: 5, // tối đa 5 lần/giờ cho mỗi IP
-  message: 'Bạn đã gửi quá nhiều lời mời, vui lòng thử lại sau.',
-})
+import { inviteValidate } from '~/validations/inviteValidation'
+import { validate } from '~/middlewares/validationMiddleware'
 
 const router = express.Router()
+router.use(authMiddleware.isAuthenticated)
 
-// Tạo link lời mời
-router.post(
-  '/:projectId/inviteLink',
-  authMiddleware.isAuthenticated,
-  projectMiddleware.checkProjectPermission('add_member'),
-  inviteMiddleware.validateCreate,
-  inviteMiddleware.validateParams,
-  inviteLimiter,
-  inviteController.createInvite,
-)
+// ============== PROJECT INVITES ==============
 
-// // Mời thành viên (email hoặc userId)
-// router.post(
-//   '/:projectId/invites',
-//   authMiddleware.isAuthenticated,
-//   projectMiddleware.checkProjectPermission('add_member'),
-//   inviteController.createMemberInvite, // API này xử lý cả email & userId
-// )
+// Lấy danh sách lời mời của user đang đăng nhập
+// GET /invites/me (thay vì /invites/my-invites)
+router.get('/me', inviteController.getUserInvites)
 
-// Xử lý nhấp link mời
+// Lấy permanent invite link của project
+// GET /invites/projects/:projectId/permanent-link
 router.get(
-  '/:token',
-  authMiddleware.isAuthenticated,
-  inviteController.handleInviteLink,
+  '/projects/:projectId/permanent-link',
+  projectMiddleware.checkProjectPermission('add_member'),
+  inviteController.getPermanentInvite
 )
 
-// // Chấp nhận hoặc từ chối lời mời
-// router.put(
-//   '/:projectId/invites/:inviteId',
-//   authMiddleware.isAuthenticated,
-//   projectMiddleware.checkInviteApprovalPermission,
-//   inviteController.handleInviteAction,
-// )
+// Lấy danh sách lời mời qua email của project
+// GET /invites/projects/:projectId/emails
+router.get(
+  '/projects/:projectId/emails',
+  projectMiddleware.checkProjectPermission('add_member'),
+  inviteController.getEmailInvites
+)
 
-// // Lấy danh sách lời mời
-// router.get(
-//   '/:projectId/invites',
-//   authMiddleware.isAuthenticated,
-//   projectMiddleware.checkProjectPermission('add_member'),
-//   inviteController.listInvites,
-// )
+// Tạo và gửi lời mời qua email (RESTful: POST to create invite)
+// POST /invites/projects/:projectId
+router.post(
+  '/projects/:projectId',
+  projectMiddleware.checkProjectPermission('add_member'),
+  validate(inviteValidate.validateSendInviteEmail),
+  inviteController.sendInviteByEmail
+)
+
+// ============== INVITE ACTIONS ==============
+
+// Chấp nhận lời mời (RESTful: PATCH để update status)
+// PATCH /invites/:inviteId (body: { action: "accept" })
+router.patch('/:inviteId/accept', inviteController.acceptInvite)
+
+// Từ chối lời mời (RESTful: PATCH để update status)
+// PATCH /invites/:inviteId (body: { action: "reject" })
+router.patch('/:inviteId/reject', inviteController.rejectInvite)
+
+// Hủy lời mời (dành cho người mời)
+// DELETE /invites/:inviteId
+router.delete('/:inviteId', inviteController.cancelInvite)
+
+// ============== PERMANENT INVITE LINK ==============
+
+// Xử lý nhấp link mời (permanent invite)
+// GET /invites/token/:token (rõ ràng hơn là /:token)
+router.get('/token/:token', inviteController.handleInviteLink)
 
 export const APIs_invite = router
