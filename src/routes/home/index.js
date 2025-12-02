@@ -21,6 +21,6 @@ Router.use('/access-requests', APIs_accessRequest)
 Router.use('/dashboards', APIs_dashboard)
 Router.use('/noti', APIs_notification)
 Router.use('/logs', serverLogRoute)
-Router.use('/', APIs_search)
+Router.use('/search', APIs_search)
 
 export const APIs_home = Router
