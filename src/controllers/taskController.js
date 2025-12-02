@@ -3,7 +3,11 @@ import { taskService } from '~/services/taskService'
 
 const createTask = async (req, res, next) => {
   try {
-    const result = await taskService.createTask({ ...req.body, created_by: req.user._id, project_id: req.params.projectId })
+    const result = await taskService.createTask({
+      ...req.body,
+      created_by: req.user._id,
+      project_id: req.params.projectId,
+    })
 
     return res.status(StatusCodes.CREATED).json({
       status: 'success',
@@ -70,7 +74,7 @@ const getTasks = async (req, res, next) => {
 
     // Lọc các field undefined trong khi gọi service
     const cleanFilters = {}
-    Object.keys(filters).forEach((key) => {
+    Object.keys(filters).forEach(key => {
       if (filters[key] !== undefined) {
         cleanFilters[key] = filters[key]
       }
@@ -122,8 +126,8 @@ const unassignTask = async (req, res, next) => {
 const updateTaskStatus = async (req, res, next) => {
   try {
     const { id } = req.params
-    const dataUpdate = req.body
-    const result = await taskService.updateTaskStatus(id, dataUpdate)
+    const { status } = req.body
+    const result = await taskService.updateTaskStatus(id, status)
 
     return res.status(StatusCodes.OK).json({
       status: 'success',

@@ -29,7 +29,6 @@ const createTask = async data => {
     })
     return task
   } catch (error) {
-    await session.abortTransaction()
     throw error
   } finally {
     session.endSession()
@@ -51,7 +50,6 @@ const updateTask = async (taskId, updateData) => {
     })
     return updatedTask
   } catch (error) {
-    await session.abortTransaction()
     throw error
   } finally {
     session.endSession()
@@ -78,7 +76,6 @@ const deleteTask = async taskId => {
     })
     return true
   } catch (error) {
-    await session.abortTransaction()
     throw error
   } finally {
     session.endSession()
@@ -119,7 +116,6 @@ const assignTask = async (taskId, assignData) => {
     })
     return updatedTask
   } catch (error) {
-    await session.abortTransaction()
     throw error
   } finally {
     session.endSession()
@@ -147,7 +143,6 @@ const unassignTask = async (taskId, assignData) => {
     })
     return updatedTask
   } catch (error) {
-    await session.abortTransaction()
     throw error
   } finally {
     session.endSession()
@@ -169,7 +164,6 @@ const updateTaskStatus = async (taskId, status) => {
     })
     return updatedTask
   } catch (error) {
-    await session.abortTransaction()
     throw error
   } finally {
     session.endSession()
