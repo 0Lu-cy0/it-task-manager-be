@@ -370,6 +370,47 @@ const getProjectMembers = async projectId => {
   return members
 }
 
+const getAllMembers = async userId => {
+  // Lấy tất cả projects mà user là owner/creator với populate
+  const projects = await projectModel
+    .find({
+      _destroy: false,
+      created_by: userId,
+    })
+    .sort({ created_at: -1 })
+    .populate('members.user_id', 'name email')
+    .populate('members.project_role_id', 'name')
+    .lean()
+    .exec()
+
+  if (!projects || projects.length === 0) {
+    return []
+  }
+
+  // Collect tất cả members từ các projects (loại bỏ duplicate)
+  const membersMap = new Map()
+
+  projects.forEach(project => {
+    if (project.members && project.members.length > 0) {
+      project.members.forEach(member => {
+        const userId = member.user_id._id.toString()
+        if (!membersMap.has(userId)) {
+          membersMap.set(userId, {
+            user_id: member.user_id._id,
+            name: member.user_id.name,
+            email: member.user_id.email,
+            role: member.project_role_id.name,
+            role_id: member.project_role_id._id,
+            joined_at: member.joined_at,
+          })
+        }
+      })
+    }
+  })
+
+  return Array.from(membersMap.values())
+}
+
 const getProjectLead = async projectId => {
   const project = await projectRepository.findOneById(projectId)
   if (!project || !project.members) {
@@ -480,6 +521,30 @@ const toggleFreeMode = async ({ projectId, free_mode, currentUserId }) => {
   })
 }
 
+const reorderColumns = async (projectId, columnOrderIds, currentUserId) => {
+  return await withTransaction(async session => {
+    // Verify project exists
+    const project = await projectRepository.findOneById(projectId)
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
+    }
+
+    // Verify user is a member of the project
+    const normalizeId = id =>
+      typeof id === 'object' && id?._id ? id._id.toString() : id.toString()
+    const member = project.members.find(m => normalizeId(m.user_id) === currentUserId.toString())
+    if (!member) {
+      throw new ApiError(StatusCodes.FORBIDDEN, MESSAGES.MEMBER_NOT_BELONG_TO_PROJECT)
+    }
+
+    // Reorder columns
+    const result = await projectRepository.reorderColumns(projectId, columnOrderIds, { session })
+    await touch(projectId, new Date(), { session })
+
+    return result
+  })
+}
+
 export const projectService = {
   createNew,
   getAll,
@@ -489,11 +554,13 @@ export const projectService = {
   updateProjectMemberRole,
   getProjectRoles,
   getProjectMembers,
+  getAllMembers,
   getProjectLead,
   deleteProject,
   verifyProjectPermission,
   updateProject,
   toggleFreeMode,
+  reorderColumns,
   touch,
   recomputeLastActivity,
 }

@@ -4,6 +4,7 @@ import { StatusCodes } from 'http-status-codes'
 import { MESSAGES } from '~/constants/messages'
 import { projectRolesModel } from '~/models/projectRolesModel'
 import { getPermissionId } from '~/utils/permission'
+import { ColumnModel } from '~/models/columnModal'
 
 const createNew = async (data, options = {}) => {
   const result = await projectModel.create([data], options)
@@ -51,6 +52,38 @@ const update = async (projectId, updateData, options = {}) => {
   }
   return await projectModel
     .findByIdAndUpdate(projectId, updateData, { new: true, ...options })
+    .populate('created_by', 'name email')
+    .populate('members.user_id', 'name email')
+    .populate('members.project_role_id', 'name')
+    .exec()
+}
+
+const reorderColumns = async (projectId, columnOrderIds, options = {}) => {
+  const project = await projectModel.findById(projectId).session(options.session || null)
+  if (!project || project._destroy) {
+    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
+  }
+
+  // Lấy danh sách column IDs từ database
+  const existingColumns = await ColumnModel
+    .find({ project_id: projectId })
+    .select('_id')
+    .lean()
+
+  const projectColumnIds = existingColumns.map(col => col._id.toString())
+  const orderIds = columnOrderIds.map(id => id.toString())
+
+  const invalidColumns = orderIds.filter(id => !projectColumnIds.includes(id))
+  if (invalidColumns.length > 0) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      `Columns không thuộc project: ${invalidColumns.join(', ')}`
+    )
+  }
+
+  // Update columnOrderIds
+  return await projectModel
+    .findByIdAndUpdate(projectId, { columnOrderIds: columnOrderIds }, { new: true, ...options })
     .populate('created_by', 'name email')
     .populate('members.user_id', 'name email')
     .populate('members.project_role_id', 'name')
@@ -261,6 +294,7 @@ export const projectRepository = {
   findOneById,
   getAll,
   update,
+  reorderColumns,
   softDelete,
   addMember,
   removeMember,

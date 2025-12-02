@@ -56,6 +56,13 @@ router.delete(
 router.get('/:projectId/roles', projectController.getProjectRoles)
 
 /**
+ * Lấy danh sách tất cả thành viên từ các project user tham gia
+ * GET /projects/members/all
+ * QUAN TRỌNG: Route này phải đặt TRƯỚC /:projectId/members
+ */
+router.get('/members/all', projectController.getAllMembers)
+
+/**
  * Lấy danh sách thành viên của dự án (public - ai cũng có thể xem)
  * GET /projects/:projectId/members
  */
@@ -80,6 +87,16 @@ router.patch(
   '/:projectId/settings',
   projectMiddleware.checkIsOwner,
   projectController.toggleFreeMode
+)
+
+/**
+ * Reorder columns in project
+ * PATCH /projects/:projectId/columns/order
+ */
+router.patch(
+  '/:projectId/columns/order',
+  projectMiddleware.checkProjectPermission('edit_project'),
+  projectController.reorderColumns
 )
 
 export const APIs_project = router

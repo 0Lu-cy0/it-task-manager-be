@@ -168,7 +168,24 @@ const getProjectMembers = async (req, res, next) => {
       data: result,
     })
   } catch (error) {
-    logger.error(`Lỗi khi lấy danh sách thành viên của dự án ${req.params.projectId}: ${error.message}`)
+    logger.error(
+      `Lỗi khi lấy danh sách thành viên của dự án ${req.params.projectId}: ${error.message}`
+    )
+    next(error)
+  }
+}
+
+const getAllMembers = async (req, res, next) => {
+  try {
+    const userId = req.user._id
+    const result = await projectService.getAllMembers(userId)
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Danh sách tất cả thành viên được lấy thành công',
+      data: result,
+    })
+  } catch (error) {
+    logger.error(`Lỗi khi lấy danh sách tất cả thành viên: ${error.message}`)
     next(error)
   }
 }
@@ -209,6 +226,30 @@ const toggleFreeMode = async (req, res, next) => {
   }
 }
 
+const reorderColumns = async (req, res, next) => {
+  try {
+    const { projectId } = req.params
+    const { columnOrderIds } = req.body
+    const currentUserId = req.user._id.toString()
+
+    if (!Array.isArray(columnOrderIds)) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'columnOrderIds phải là mảng',
+      })
+    }
+
+    const result = await projectService.reorderColumns(projectId, columnOrderIds, currentUserId)
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Cập nhật thứ tự cột thành công',
+      data: result,
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
 export const projectController = {
   createNew,
   update,
@@ -220,6 +261,8 @@ export const projectController = {
   updateMemberRole,
   getProjectRoles,
   getProjectMembers,
+  getAllMembers,
   getProjectLead,
   toggleFreeMode,
+  reorderColumns,
 }

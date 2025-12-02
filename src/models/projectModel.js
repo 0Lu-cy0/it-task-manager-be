@@ -14,6 +14,7 @@ const PROJECT_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema(
       index: true,
     },
     columns: [{ type: mongoose.Schema.Types.ObjectId, ref: 'column' }],
+    columnOrderIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'column' }],
     priority: { type: String, required: true, enum: ['low', 'medium', 'high'], index: true },
     start_date: { type: Date, default: null },
     end_date: {

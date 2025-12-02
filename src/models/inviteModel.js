@@ -47,6 +47,10 @@ const INVITE_COLLECTION_SCHEMA_MONGOOSE = new mongoose.Schema(
       required: false,
       index: true,
     },
+    accepted_at: {
+      type: Date,
+      required: false,
+    },
     is_permanent: {
       type: Boolean,
       default: false,
@@ -63,8 +67,8 @@ INVITE_COLLECTION_SCHEMA_MONGOOSE.index(
     unique: true,
     partialFilterExpression: {
       status: 'pending',
-      email: { $type: 'string' } // Chỉ áp dụng khi email không null
-    }
+      email: { $type: 'string' }, // Chỉ áp dụng khi email không null
+    },
   }
 )
 
@@ -75,8 +79,8 @@ INVITE_COLLECTION_SCHEMA_MONGOOSE.index(
     unique: true,
     partialFilterExpression: {
       status: 'pending',
-      invite_token: { $type: 'string' } // Chỉ áp dụng khi invite_token không null
-    }
+      invite_token: { $type: 'string' }, // Chỉ áp dụng khi invite_token không null
+    },
   }
 )
 

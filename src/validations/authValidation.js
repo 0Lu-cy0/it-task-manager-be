@@ -192,6 +192,27 @@ const validateProfileUpdate = async data => {
       'string.min': MESSAGES.NAME_MIN,
       'string.max': MESSAGES.NAME_MAX,
     }),
+    cccd_number: Joi.string().allow(null, '').messages({
+      'string.base': 'Số CCCD không hợp lệ',
+    }),
+    birth_date: Joi.date().allow(null).messages({
+      'date.base': 'Ngày sinh không hợp lệ',
+    }),
+    gender: Joi.string().valid('Nam', 'Nữ', 'Khác').allow(null, '').messages({
+      'any.only': 'Giới tính không hợp lệ',
+    }),
+    nationality: Joi.string().allow(null, '').messages({
+      'string.base': 'Quốc tịch không hợp lệ',
+    }),
+    expiry_date: Joi.date().allow(null).messages({
+      'date.base': 'Ngày hết hạn không hợp lệ',
+    }),
+    hometown: Joi.string().allow(null, '').messages({
+      'string.base': 'Quê quán không hợp lệ',
+    }),
+    residence_address: Joi.string().allow(null, '').messages({
+      'string.base': 'Nơi thường trú không hợp lệ',
+    }),
     avatar_url: Joi.string().uri().allow(null, '').messages({
       'string.uri': MESSAGES.AVATAR_INVALID,
     }),

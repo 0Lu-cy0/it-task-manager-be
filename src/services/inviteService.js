@@ -259,13 +259,38 @@ export const inviteService = {
    * Chấp nhận lời mời
    */
   async acceptInvite(inviteId, userId) {
-    const invite = await inviteModel
-      .findOne({ _id: inviteId, status: 'pending' })
+    let invite = await inviteModel
+      .findById(inviteId)
       .populate('project_id')
       .populate('invited_by', 'full_name email')
+      .populate('role_id')
 
     if (!invite) {
       throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.INVITE_NOT_FOUND)
+    }
+
+    // Nếu invite đã được accept rồi, trả về thông tin project
+    if (invite.status === 'accepted') {
+      console.log('ℹ️ Invite already accepted, redirecting to project')
+
+      // Kiểm tra user có phải là người được mời không
+      const user = await inviteRepository.findUserByEmail(invite.email)
+      if (user && user._id.toString() === userId.toString()) {
+        return {
+          message: 'Bạn đã là thành viên của dự án này',
+          project: {
+            _id: invite.project_id._id,
+            name: invite.project_id.name,
+            visibility: invite.project_id.visibility,
+          },
+          role: invite.role_id?.name || 'member',
+        }
+      }
+    }
+
+    // Kiểm tra invite còn pending không
+    if (invite.status !== 'pending') {
+      throw new ApiError(StatusCodes.BAD_REQUEST, MESSAGES.INVITE_NOT_FOUND)
     }
 
     // Kiểm tra hết hạn
@@ -278,11 +303,29 @@ export const inviteService = {
     // - Private: Bắt buộc accept mới vào được
     // - Public: Accept để được role trong invite (thay vì member mặc định)
 
+    // Kiểm tra role có tồn tại không
+    if (!invite.role_id) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Role không tồn tại trong lời mời')
+    }
+
+    console.log('🔍 Accept Invite Debug:', {
+      inviteId,
+      userId,
+      inviteEmail: invite.email,
+      roleId: invite.role_id._id,
+      roleName: invite.role_id.name,
+      projectId: invite.project_id._id,
+    })
+
     // Kiểm tra email của user có khớp với lời mời không
-    const user = await inviteRepository.findUserByEmail(
-      (await inviteModel.findById(inviteId)).email
-    )
+    const user = await inviteRepository.findUserByEmail(invite.email)
     if (!user || user._id.toString() !== userId.toString()) {
+      console.log('❌ Email mismatch:', {
+        inviteEmail: invite.email,
+        userEmail: user?.email,
+        userId,
+        foundUserId: user?._id.toString(),
+      })
       throw new ApiError(StatusCodes.FORBIDDEN, MESSAGES.INVITE_ACCEPT_NO_PERMISSION)
     }
 
@@ -295,14 +338,18 @@ export const inviteService = {
     }
 
     // Thêm user vào project
-    await projectService.addProjectMember(
-      invite.project_id._id,
+    console.log('➕ Adding member to project:', {
+      projectId: invite.project_id._id,
       userId,
-      invite.role_id,
-      invite.invited_by._id
-    )
+      roleId: invite.role_id._id,
+      roleName: invite.role_id.name,
+    })
 
-    // Tạo thông báo cho người mời trước khi xóa invite
+    await projectService.addProjectMember(invite.project_id._id, userId, invite.role_id._id)
+
+    console.log('✅ Member added successfully')
+
+    // Tạo thông báo cho người mời trước khi cập nhật status
     await notificationModel.create({
       user_id: invite.invited_by._id,
       project_id: invite.project_id._id,
@@ -312,8 +359,11 @@ export const inviteService = {
       related_id: inviteId,
     })
 
-    // Xóa lời mời sau khi được chấp nhận (cả email invite và permanent link)
-    await inviteModel.findByIdAndDelete(inviteId)
+    // Cập nhật status thành 'accepted' thay vì xóa để có thể redirect lại
+    await inviteModel.findByIdAndUpdate(inviteId, {
+      status: 'accepted',
+      accepted_at: new Date(),
+    })
 
     const isPublicProject = invite.project_id.visibility === 'public'
 

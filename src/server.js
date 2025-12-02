@@ -17,8 +17,9 @@ const START_SERVER = () => {
 
   app.use(cors(corsOptions))
 
-  //Enable req.body json data
-  app.use(express.json())
+  //Enable req.body json data - Increase limit for large payloads
+  app.use(express.json({ limit: '10mb' }))
+  app.use(express.urlencoded({ limit: '10mb', extended: true }))
 
   // đăng ký middleware bọc response toàn cục (sau body parser, trước routes)
   app.use(responseWrapper)
@@ -50,22 +51,22 @@ const START_SERVER = () => {
   })
 }
 
-  ; (async () => {
-    try {
-      console.log('1. Connecting to MongoDB Cloud Atlas...')
-      await CONNECT_DB()
-      console.log('2. Connected to MongoDB Cloud Atlas!')
+;(async () => {
+  try {
+    console.log('1. Connecting to MongoDB Cloud Atlas...')
+    await CONNECT_DB()
+    console.log('2. Connected to MongoDB Cloud Atlas!')
 
-      // Setup MeiliSearch indexes
-      await setupMeiliIndexes()
+    // Setup MeiliSearch indexes
+    await setupMeiliIndexes()
 
-      //Khởi động Server Back-end sau-khi-đã Connect-Database- thành công
-      START_SERVER()
-    } catch (error) {
-      console.error(error)
-      process.exit(0)
-    }
-  })()
+    //Khởi động Server Back-end sau-khi-đã Connect-Database- thành công
+    START_SERVER()
+  } catch (error) {
+    console.error(error)
+    process.exit(0)
+  }
+})()
 
 // CONNECT_DB()
 //   .then(() => 'Đã kết nối tới MongoDB Cloud Atlat!')
@@ -74,5 +75,3 @@ const START_SERVER = () => {
 //     console.error(err)
 //     process.exit(0)
 //   })
-
-

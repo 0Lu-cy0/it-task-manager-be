@@ -123,11 +123,38 @@ const getUser = async userId => {
  * Updates user profile
  */
 const updateProfile = async (userId, data) => {
-  const user = await authRepository.updateUserById(userId, data)
+  const {
+    full_name,
+    cccd_number,
+    birth_date,
+    gender,
+    nationality,
+    expiry_date,
+    hometown,
+    residence_address,
+    avatar_url,
+  } = data
+
+  const updateData = {}
+  if (full_name !== undefined) updateData.full_name = full_name
+  if (cccd_number !== undefined) updateData.cccd_number = cccd_number
+  if (birth_date !== undefined) updateData.birth_date = birth_date
+  if (gender !== undefined) updateData.gender = gender
+  if (nationality !== undefined) updateData.nationality = nationality
+  if (expiry_date !== undefined) updateData.expiry_date = expiry_date
+  if (hometown !== undefined) updateData.hometown = hometown
+  if (residence_address !== undefined) updateData.residence_address = residence_address
+  if (avatar_url !== undefined) updateData.avatar_url = avatar_url
+
+  const user = await authRepository.updateUserById(userId, updateData)
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.USER_NOT_FOUND)
   }
-  return user
+
+  // Return user info without sensitive data
+  // eslint-disable-next-line no-unused-vars
+  const { password, resetToken, resetTokenExpiry, _destroy, __v, ...userInfo } = user
+  return userInfo
 }
 
 /**
