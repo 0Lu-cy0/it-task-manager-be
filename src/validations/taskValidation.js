@@ -145,6 +145,7 @@ const validateUpdate = async data => {
     type: Joi.string().valid('task', 'story', 'bug', 'subtask', 'asset', 'epic', 'research', 'other'),
     due_date: Joi.date().allow(null),
     tags: Joi.array().items(Joi.string()),
+    status: Joi.string().valid('todo', 'in_progress', 'testing', 'completed')
   })
 
   try {
@@ -207,3 +208,4 @@ export const taskValidation = {
   validateUnassign,
   validateStatusUpdate,
 }
+
