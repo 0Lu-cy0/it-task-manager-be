@@ -1,7 +1,7 @@
 import mongoose from 'mongoose'
 import { columnRepository } from '~/repository/columnRepository'
 import { taskRepository } from '~/repository/taskRepository'
-import ApiError from '~/utils/APIError'
+import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 import { projectRepository } from '~/repository/projectRepository'
 import { MESSAGES } from '~/constants/messages'

@@ -1,5 +1,5 @@
 import { taskValidation } from '~/validations/taskValidation'
-import { ApiError } from '~/utils/APIError'
+import { ApiError } from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 
 const validateCreate = async (req, res, next) => {

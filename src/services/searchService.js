@@ -6,7 +6,7 @@ import { taskRepository } from '~/repository/taskRepository'
 import { authRepository } from '~/repository/authRepository'
 import { toProjectDocument, toTaskDocument, toUserDocument } from '~/repository/searchRepository'
 import { columnService } from '~/services/columnService'
-import ApiError from '~/utils/APIError'
+import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 
 const DEFAULT_LIMIT = 20

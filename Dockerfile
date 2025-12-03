@@ -20,34 +20,22 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install MeiliSearch
-RUN apk add --no-cache curl && \
-    curl -L https://install.meilisearch.com | sh && \
-    mv ./meilisearch /usr/local/bin/ && \
-    apk del curl
-
-# Copy package files
+# Install all dependencies (including dev) for local/docker testing
 COPY package*.json ./
+RUN npm ci
 
-# Install only production dependencies
-RUN npm ci --only=production
+# Copy full source
+COPY . .
 
-# Copy built application from builder
-COPY --from=builder /app/build ./build
+# Default environment for container testing
+ENV APP_HOST=0.0.0.0
+ENV APP_PORT=3000
+ENV BUILD_MODE=production
 
-# Copy necessary files
-COPY start-meili.js ./
-COPY scripts ./scripts
+EXPOSE 3000
 
-# Create directory for MeiliSearch data
-RUN mkdir -p /app/data.ms
+# Build the application
+RUN npm run build
 
-# Expose ports
-EXPOSE 3000 7700
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
-
-# Start both MeiliSearch and the app
-CMD sh -c "meilisearch --db-path=/app/data.ms --http-addr=0.0.0.0:7700 --master-key=${MEILISEARCH_API_KEY} & node ./build/src/server.js"
+# Start production server using built code
+CMD ["node", "./build/src/server.js"]
