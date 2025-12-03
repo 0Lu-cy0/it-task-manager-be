@@ -58,7 +58,7 @@ const START_SERVER = () => {
     console.log('2. Connected to MongoDB Cloud Atlas!')
 
     // Setup MeiliSearch indexes
-    await setupMeiliIndexes()
+    // await setupMeiliIndexes()
 
     //Khởi động Server Back-end sau-khi-đã Connect-Database- thành công
     START_SERVER()
