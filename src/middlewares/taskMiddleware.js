@@ -1,5 +1,5 @@
 import { taskValidation } from '~/validations/taskValidation'
-import { ApiError } from '~/utils/APIError'
+import { ApiError } from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 
 const normalizeTaskPayload = payload => {
@@ -78,3 +78,4 @@ export const taskMiddleware = {
   validateUnassign,
   validateStatusUpdate,
 }
+
