@@ -11,6 +11,10 @@ export const corsOptions = {
       return callback(null, true)
     }
 
+    if (origin.includes('.vercel.app')) {
+      return callback(null, true)
+    }
+
     // Kiểm tra domain có trong whitelist không
     if (WHITELIST_DOMAINS.includes(origin)) {
       return callback(null, true)
