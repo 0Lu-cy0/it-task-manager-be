@@ -9,7 +9,6 @@ services:
     restart: unless-stopped
     ports:
       - '3000:3000'
-      - '7700:7700'
     environment:
       - NODE_ENV=production
       - BUILD_MODE=production
@@ -23,12 +22,32 @@ services:
       - EMAIL_PASS=${EMAIL_PASS}
       - CLIENT_URL=${CLIENT_URL}
       - MEILISEARCH_API_KEY=${MEILISEARCH_API_KEY}
-      - MEILISEARCH_HOST=http://localhost:7700
+      - MEILISEARCH_HOST=http://meilisearch:7700
       - AUTHOR=${AUTHOR}
     volumes:
       - meilisearch-data:/app/data.ms
     networks:
       - trello-network
+
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    container_name: trello-meilisearch
+    restart: unless-stopped
+    environment:
+      - MEILI_NO_ANALYTICS=true
+      - MEILI_MASTER_KEY=${MEILISEARCH_API_KEY}
+    ports:
+      - '7700:7700'
+    volumes:
+      - meilisearch-data:/data.ms
+    networks:
+      - trello-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 volumes:
   meilisearch-data:
