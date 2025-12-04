@@ -22,6 +22,10 @@ router.get('/projects', searchController.searchProjects)
 // GET /search/tasks?q=keyword
 router.get('/tasks', searchController.searchTasks)
 
+// Tìm kiếm trong board cụ thể
+// GET /search/board/:projectId?q=keyword
+router.get('/search/board/:projectId', searchController.searchBoard)
+
 // Tìm kiếm chỉ users
 // GET /search/users?q=keyword
 router.get('/users', searchController.searchUsers)

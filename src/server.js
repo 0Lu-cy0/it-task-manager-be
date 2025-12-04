@@ -9,7 +9,6 @@ import { APIs_home } from './routes/home'
 import { APIs_auth } from './routes/auth'
 import { swaggerDocs } from '~/config/swagger'
 import { errorHandlingMiddleware } from './middlewares/errorHandlingMiddleware'
-import { setupMeiliIndexes } from '~/utils/searchUtils'
 import responseWrapper from './middlewares/responseWrapper'
 
 const START_SERVER = () => {
@@ -51,22 +50,19 @@ const START_SERVER = () => {
   })
 }
 
-;(async () => {
-  try {
-    console.log('1. Connecting to MongoDB Cloud Atlas...')
-    await CONNECT_DB()
-    console.log('2. Connected to MongoDB Cloud Atlas!')
+  ; (async () => {
+    try {
+      console.log('1. Connecting to MongoDB Cloud Atlas...')
+      await CONNECT_DB()
+      console.log('2. Connected to MongoDB Cloud Atlas!')
 
-    // Setup MeiliSearch indexes
-    // await setupMeiliIndexes()
-
-    //Khởi động Server Back-end sau-khi-đã Connect-Database- thành công
-    START_SERVER()
-  } catch (error) {
-    console.error(error)
-    process.exit(0)
-  }
-})()
+      //Khởi động Server Back-end sau-khi-đã Connect-Database- thành công
+      START_SERVER()
+    } catch (error) {
+      console.error(error)
+      process.exit(0)
+    }
+  })()
 
 // CONNECT_DB()
 //   .then(() => 'Đã kết nối tới MongoDB Cloud Atlat!')

@@ -1,338 +1,430 @@
 // src/services/searchService.js
-import { getMeiliClient } from '~/config/meilisearch'
-import { buildMeiliFilters } from '~/utils/searchUtils'
-import { projectRepository } from '~/repository/projectRepository'
-import { taskRepository } from '~/repository/taskRepository'
-import { authRepository } from '~/repository/authRepository'
-import { toProjectDocument, toTaskDocument, toUserDocument } from '~/repository/searchRepository'
-import { columnService } from '~/services/columnService'
-import ApiError from '~/utils/ApiError'
+import mongoose from 'mongoose'
 import { StatusCodes } from 'http-status-codes'
+import { projectModel } from '~/models/projectModel'
+import { taskModel } from '~/models/taskModel'
+import { ColumnModel } from '~/models/columnModal'
+import { authModel } from '~/models/authModel'
+import ApiError from '~/utils/ApiError'
+import { MESSAGES } from '~/constants/messages'
+import { normalizeFilterArray, normalizeQuery, runFuseSearch } from '~/utils/searchUtils'
 
-const DEFAULT_LIMIT = 20
-const DEFAULT_OFFSET = 0
-let projectSearchSettingsEnsured = false
+const SOURCE_LIMIT = 500
 
-const waitForIndexTask = async (index, taskUid) => {
-  if (!taskUid) return
-  if (typeof index.waitForTask === 'function') {
-    await index.waitForTask(taskUid)
-    return
-  }
-  const client = getMeiliClient()
-  if (typeof client.waitForTask === 'function') {
-    await client.waitForTask(taskUid)
-  }
-}
-
-const extractId = hit => {
-  if (!hit) return null
-  if (hit._id) return hit._id.toString()
-  if (hit.id) return hit.id.toString()
-  return null
-}
-
-const orderDocuments = (ids, docs) => {
-  const map = new Map(docs.map(doc => [doc._id.toString(), doc]))
-  return ids.map(id => map.get(id)).filter(Boolean)
-}
-
-const formatSearchResponse = (meiliResponse = {}, entities = []) => {
-  const sanitizeNumber = (value, fallback) => {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback
-  }
-
-  const meta = {
-    total: meiliResponse.estimatedTotalHits ?? meiliResponse.hits?.length ?? entities.length,
-    limit: sanitizeNumber(meiliResponse.limit, DEFAULT_LIMIT),
-    offset: sanitizeNumber(meiliResponse.offset, DEFAULT_OFFSET),
-    processingTimeMs: meiliResponse.processingTimeMs ?? 0,
-    query: meiliResponse.query ?? '',
-  }
-
-  return {
-    items: entities,
-    meta,
-  }
-}
-
-const normalizeObjectId = value => {
+const toStringId = value => {
   if (!value) return null
   if (typeof value === 'string') return value
-  if (typeof value.toString === 'function') return value.toString()
-  if (value._id && typeof value._id.toString === 'function') return value._id.toString()
+  if (value instanceof mongoose.Types.ObjectId) return value.toString()
+  if (typeof value === 'object' && value._id) return value._id.toString()
   return null
 }
 
-const userCanAccessProject = (project, userId) => {
-  if (!project) return false
-  if (project.visibility === 'public') return true
-  const ownerId = normalizeObjectId(project.created_by)
-  if (ownerId && ownerId === userId) return true
-  const members = Array.isArray(project.members) ? project.members : []
-  return members.some(member => normalizeObjectId(member.user_id) === userId)
+const mapProjectResult = project => ({
+  _id: project._id.toString(),
+  name: project.name,
+  description: project.description ?? null,
+  status: project.status,
+  priority: project.priority,
+  member_count: project.member_count ?? 0,
+  end_date: project.end_date ?? null,
+})
+
+const mapTaskResult = task => {
+  const projectRef = task.project_id
+  return {
+    _id: task._id.toString(),
+    name: task.title,
+    description: task.description ?? null,
+    status: task.status,
+    priority: task.priority,
+    project_id: toStringId(projectRef),
+    project_name:
+      projectRef && typeof projectRef === 'object' && 'name' in projectRef
+        ? projectRef.name
+        : undefined,
+  }
 }
 
-const toEndOfDay = value => {
-  if (!value) return null
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return null
-  date.setHours(23, 59, 59, 999)
-  return date
-}
+const mapUserResult = user => ({
+  _id: user._id.toString(),
+  name: user.full_name || user.email,
+  email: user.email,
+  role: user.department || undefined,
+})
 
-const ensureProjectNameSearchableAttribute = async index => {
-  if (projectSearchSettingsEnsured) return
-
-  const settings = await index.getSettings()
-  const searchableAttributes = settings?.searchableAttributes || []
-  const isAlreadyNameOnly = searchableAttributes.length === 1 && searchableAttributes[0] === 'name'
-
-  if (!isAlreadyNameOnly) {
-    const task = await index.updateSettings({ searchableAttributes: ['name'] })
-    const taskUid = task?.taskUid ?? task?.updateId
-    await waitForIndexTask(index, taskUid)
+const ensureProjectAccess = async (projectId, userId) => {
+  if (!mongoose.Types.ObjectId.isValid(projectId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, MESSAGES.PROJECT_ID_INVALID)
   }
 
-  projectSearchSettingsEnsured = true
+  const project = await projectModel
+    .findOne({ _id: projectId, _destroy: false })
+    .select('name visibility members columnOrderIds')
+    .lean()
+
+  if (!project) {
+    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
+  }
+
+  const isMember = project.members?.some(member => toStringId(member.user_id) === userId.toString())
+
+  if (project.visibility !== 'public' && !isMember) {
+    throw new ApiError(StatusCodes.FORBIDDEN, MESSAGES.FORBIDDEN)
+  }
+
+  return project
 }
 
-const addDocumentsAndWait = async (index, documents) => {
-  if (!Array.isArray(documents) || documents.length === 0) return null
-  const task = await index.addDocuments(documents, { primaryKey: 'id' })
-  const taskUid = task?.taskUid ?? task?.updateId
-  await waitForIndexTask(index, taskUid)
-  return taskUid
-}
+const sortCardsByOrder = (cards = [], orderIds = []) => {
+  if (!cards.length) return []
+  if (!orderIds.length) {
+    return cards.slice().sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
+  }
 
-const searchUsers = async (query = '', _userId, filters = {}) => {
-  void _userId
-  const meiliClient = getMeiliClient()
-  const index = meiliClient.index('users')
-  const limit = Number(filters.limit ?? DEFAULT_LIMIT)
-  const offset = Number(filters.offset ?? DEFAULT_OFFSET)
-
-  const searchResponse = await index.search(query, {
-    limit,
-    offset,
+  const orderMap = new Map(orderIds.map((id, index) => [id, index]))
+  return cards.slice().sort((a, b) => {
+    const ai = orderMap.get(a._id) ?? Number.MAX_SAFE_INTEGER
+    const bi = orderMap.get(b._id) ?? Number.MAX_SAFE_INTEGER
+    if (ai === bi) {
+      return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
+    }
+    return ai - bi
   })
-
-  const ids = (searchResponse.hits || []).map(extractId).filter(Boolean)
-  const users = await authRepository.findUsersByIds(ids)
-  const orderedUsers = orderDocuments(ids, users)
-
-  return formatSearchResponse(searchResponse, orderedUsers)
 }
 
-const searchProjects = async (query = '', userId, filters = {}) => {
-  const meiliClient = getMeiliClient()
-  const index = meiliClient.index('projects')
-
-  await ensureProjectNameSearchableAttribute(index)
-
-  const visibilityFilter = `(members.user_id = "${userId}" OR visibility = "public")`
-  const additionalFilters = buildMeiliFilters(filters)
-  const limit = Number(filters.limit ?? DEFAULT_LIMIT)
-  const offset = Number(filters.offset ?? DEFAULT_OFFSET)
-
-  const filterClauses = [visibilityFilter, ...additionalFilters].filter(Boolean)
-
-  const searchResponse = await index.search(query, {
-    limit,
-    offset,
-    filter: filterClauses.length ? filterClauses : undefined,
-    attributesToSearchOn: ['name'],
-    attributesToHighlight: ['name', 'description'],
-  })
-
-  const ids = (searchResponse.hits || []).map(extractId).filter(Boolean)
-  const projects = await projectRepository.findByIds(ids)
-  const orderedProjects = orderDocuments(ids, projects)
-
-  return formatSearchResponse(searchResponse, orderedProjects)
+const parseDueEndFilter = value => {
+  const raw = Array.isArray(value) ? value[0] : value
+  if (!raw) return null
+  const parsed = new Date(raw)
+  if (Number.isNaN(parsed.getTime())) return null
+  parsed.setHours(23, 59, 59, 999)
+  return parsed
 }
 
-const searchTasks = async (query = '', userId, filters = {}) => {
-  const meiliClient = getMeiliClient()
-  const index = meiliClient.index('tasks')
-  const limit = Number(filters.limit ?? DEFAULT_LIMIT)
-  const offset = Number(filters.offset ?? DEFAULT_OFFSET)
+const normalizeText = value =>
+  typeof value === 'string'
+    ? value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+    : ''
 
-  const baseFilters = [`assignees.user_id = "${userId}"`]
-  const additionalFilters = buildMeiliFilters(filters)
-  const filterClauses = [...baseFilters, ...additionalFilters].filter(Boolean)
-
-  const searchResponse = await index.search(query, {
-    limit,
-    offset,
-    filter: filterClauses.length ? filterClauses : undefined,
-    attributesToHighlight: ['title', 'description'],
-    facets: ['status', 'priority', 'project_id'],
-  })
-
-  const ids = (searchResponse.hits || []).map(extractId).filter(Boolean)
-  const tasks = await taskRepository.findByIds(ids)
-  const orderedTasks = orderDocuments(ids, tasks)
-
-  return formatSearchResponse(searchResponse, orderedTasks)
+const textMatchesQuery = (text, normalizedQuery, normalizedQueryAscii) => {
+  if (!text || !normalizedQuery) return false
+  const lower = text.toLowerCase()
+  if (lower.includes(normalizedQuery)) return true
+  if (!normalizedQueryAscii) return false
+  return normalizeText(lower).includes(normalizedQueryAscii)
 }
 
-const globalSearch = async (query = '', userId, pagination = {}) => {
-  const [projectResult, taskResult, userResult] = await Promise.all([
-    searchProjects(query, userId, pagination),
-    searchTasks(query, userId, pagination),
-    searchUsers(query, userId, pagination),
-  ])
+const formatTaskCard = task => ({
+  _id: task._id.toString(),
+  tittle_card: task.title,
+  description: task.description ?? null,
+  status: task.status,
+  priority: task.priority,
+  project_id: toStringId(task.project_id),
+  columnId: toStringId(task.columnId) ?? undefined,
+  due_date: task.due_date ?? null,
+  created_by: toStringId(task.created_by),
+  createdAt: task.createdAt,
+  updatedAt: task.updatedAt,
+  tags: task.tags ?? [],
+})
 
+const formatColumnWithCards = (column, cards, columnMatched, matchedCardIds = []) => {
+  const cardOrderIds = (column.cardOrderIds || []).map(id => toStringId(id)).filter(Boolean)
   return {
-    projects: projectResult.items,
-    tasks: taskResult.items,
-    users: userResult.items,
-    meta: {
-      projects: projectResult.meta,
-      tasks: taskResult.meta,
-      users: userResult.meta,
+    _id: toStringId(column._id),
+    tittle_column: column.title,
+    project_id: toStringId(column.project_id),
+    createdBy: toStringId(column.createdBy),
+    cardOrderIds,
+    createdAt: column.createdAt,
+    updatedAt: column.updatedAt,
+    cards,
+    matchMeta: {
+      columnMatched,
+      cardsMatched: matchedCardIds.length ? matchedCardIds : cards.map(card => card._id),
     },
   }
 }
 
-const searchBoard = async (projectId, userId, query = '', options = {}) => {
-  if (!projectId) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'projectId is required')
+const orderColumns = (columns, orderIds = []) => {
+  if (!columns.length) return []
+  const columnMap = new Map(columns.map(column => [toStringId(column._id), column]))
+  const ordered = []
+
+  orderIds.forEach(id => {
+    const column = columnMap.get(id)
+    if (column) {
+      ordered.push(column)
+      columnMap.delete(id)
+    }
+  })
+
+  columnMap.forEach(column => ordered.push(column))
+  return ordered
+}
+
+const buildProjectFilter = (userId, filters) => {
+  const statusFilters = normalizeFilterArray(filters.status)
+  const priorityFilters = normalizeFilterArray(filters.priority)
+
+  const filter = {
+    _destroy: false,
+    $or: [{ 'members.user_id': userId }, { visibility: 'public' }],
   }
 
-  const trimmedQuery = (query || '').trim()
-  const normalizedQuery = trimmedQuery.toLowerCase()
-  const priorityFilter = Array.isArray(options.priorityFilter)
-    ? options.priorityFilter.map(value => value.toLowerCase()).filter(Boolean)
-    : []
-  const dueEndDate = toEndOfDay(options.dueEnd)
+  if (statusFilters.length) {
+    filter.status = { $in: statusFilters }
+  }
 
-  const hasPriorityFilter = priorityFilter.length > 0
-  const hasDueFilter = Boolean(dueEndDate)
-  const hasQuery = Boolean(normalizedQuery)
+  if (priorityFilters.length) {
+    filter.priority = { $in: priorityFilters }
+  }
 
-  if (!hasQuery && !hasPriorityFilter && !hasDueFilter) {
+  return filter
+}
+
+const buildTaskFilter = (userId, filters) => {
+  const statusFilters = normalizeFilterArray(filters.status)
+  const priorityFilters = normalizeFilterArray(filters.priority)
+  const projectFilters = normalizeFilterArray(filters.project_id)
+
+  const filter = {
+    _destroy: false,
+    'assignees.user_id': userId,
+  }
+
+  if (statusFilters.length) {
+    filter.status = { $in: statusFilters }
+  }
+
+  if (priorityFilters.length) {
+    filter.priority = { $in: priorityFilters }
+  }
+
+  if (projectFilters.length) {
+    const [projectId] = projectFilters
+    if (mongoose.Types.ObjectId.isValid(projectId)) {
+      filter.project_id = projectId
+    }
+  }
+
+  return filter
+}
+
+const fetchProjects = async filter =>
+  projectModel
+    .find(filter)
+    .sort({ updatedAt: -1 })
+    .limit(SOURCE_LIMIT)
+    .select('name description status priority member_count end_date')
+    .lean()
+
+const fetchTasks = async filter =>
+  taskModel
+    .find(filter)
+    .sort({ updatedAt: -1 })
+    .limit(SOURCE_LIMIT)
+    .select('title description status priority project_id')
+    .populate({ path: 'project_id', select: 'name' })
+    .lean()
+
+const fetchUsers = async userId =>
+  authModel
+    .find({ _destroy: false, _id: { $ne: userId } })
+    .sort({ updatedAt: -1 })
+    .limit(SOURCE_LIMIT)
+    .select('full_name email department')
+    .lean()
+
+export const searchBoard = async (projectId, userId, query, filters = {}) => {
+  const normalizedQuery = normalizeQuery(query)
+  const normalizedQueryLower = normalizedQuery.toLowerCase()
+  const normalizedQueryAscii = normalizeText(normalizedQuery)
+  if (!normalizedQuery) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Query parameter q is required')
+  }
+
+  const project = await ensureProjectAccess(projectId, userId)
+  const columns = await ColumnModel.find({ project_id: projectId }).lean()
+
+  let tasks = await taskModel
+    .find({ project_id: projectId, _destroy: false })
+    .select(
+      'title description status priority project_id columnId due_date created_by createdAt updatedAt tags'
+    )
+    .lean()
+
+  const priorityFilters = normalizeFilterArray(filters.priority)
+  if (priorityFilters.length) {
+    tasks = tasks.filter(task => priorityFilters.includes(task.priority))
+  }
+
+  const dueEnd = parseDueEndFilter(filters.dueEnd)
+  if (dueEnd) {
+    tasks = tasks.filter(task => task.due_date && new Date(task.due_date) <= dueEnd)
+  }
+
+  const totalCards = tasks.length
+
+  const formattedCards = tasks.map(formatTaskCard)
+  const cardById = new Map(formattedCards.map(card => [card._id, card]))
+  const cardsByColumnAll = new Map()
+
+  formattedCards.forEach(card => {
+    const columnId = card.columnId
+    if (!columnId) return
+    const bucket = cardsByColumnAll.get(columnId) || []
+    bucket.push(card)
+    cardsByColumnAll.set(columnId, bucket)
+  })
+
+  if (!totalCards) {
     return {
       columns: [],
       meta: {
-        query: '',
-        totalColumns: 0,
-        totalCards: 0,
+        query: normalizedQuery,
+        project: { _id: project._id.toString(), name: project.name },
+        totalColumns: columns.length,
         matchedColumns: 0,
+        totalCards: 0,
         matchedCards: 0,
       },
     }
   }
 
-  const project = await projectRepository.findById(projectId)
-  if (!project) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy dự án')
-  }
-
-  if (!userCanAccessProject(project, userId)) {
-    throw new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền truy cập dự án này')
-  }
-
-  const columnsWithCards = await columnService.getColumnsByProject(projectId)
-
-  const matchedColumns = []
-  let matchedCardsCount = 0
-
-  columnsWithCards.forEach(column => {
-    const cards = Array.isArray(column.cards) ? column.cards : []
-    const filteredCards = cards.filter(card => {
-      if (hasPriorityFilter) {
-        const cardPriority = (card.priority || '').toLowerCase()
-        if (!priorityFilter.includes(cardPriority)) return false
-      }
-
-      if (hasDueFilter) {
-        if (!card.due_date) return false
-        const dueDate = new Date(card.due_date)
-        if (Number.isNaN(dueDate.getTime())) return false
-        if (dueEndDate && dueDate > dueEndDate) return false
-      }
-
-      return true
-    })
-
-    if (!hasQuery && filteredCards.length === 0) {
-      return
-    }
-
-    const columnMatched = hasQuery
-      ? (column.title || '').toLowerCase().includes(normalizedQuery)
-      : false
-
-    const cardsMatched = hasQuery
-      ? filteredCards.filter(card =>
-        (card.title || card.name || '').toLowerCase().includes(normalizedQuery)
-      )
-      : filteredCards
-
-    if (hasQuery && !columnMatched && cardsMatched.length === 0) {
-      return
-    }
-
-    const visibleCards = columnMatched ? filteredCards : cardsMatched
-    matchedCardsCount += visibleCards.length
-
-    matchedColumns.push({
-      ...column,
-      cards: visibleCards,
-      cardOrderIds: visibleCards.map(card => normalizeObjectId(card._id)).filter(Boolean),
-      matchMeta: {
-        columnMatched,
-        cardsMatched: cardsMatched.map(card => normalizeObjectId(card._id)).filter(Boolean),
-      },
-    })
+  const { results: matchedCardsList } = runFuseSearch({
+    items: formattedCards,
+    query: normalizedQuery,
+    keys: ['tittle_card', 'description', 'tags'],
+    limit: tasks.length || undefined,
+    fuseOptions: { threshold: 0.35, minMatchCharLength: 1 },
   })
+
+  const matchedCardsByColumn = new Map()
+  matchedCardsList.forEach(card => {
+    const cardId = toStringId(card._id)
+    const formatted = cardById.get(cardId) || card
+    const columnId = formatted.columnId
+    if (!columnId) return
+    const current = matchedCardsByColumn.get(columnId) || []
+    current.push(formatted)
+    matchedCardsByColumn.set(columnId, current)
+  })
+
+  const columnOrderIds = (project.columnOrderIds || []).map(id => toStringId(id)).filter(Boolean)
+  const orderedColumns = orderColumns(columns, columnOrderIds)
+
+  const matchedColumns = orderedColumns
+    .map(column => {
+      const columnId = toStringId(column._id)
+      const matchedCards = matchedCardsByColumn.get(columnId) || []
+      const columnMatched = textMatchesQuery(
+        column.title,
+        normalizedQueryLower,
+        normalizedQueryAscii
+      )
+
+      if (!columnMatched && !matchedCards.length) return null
+
+      const cardsSource = columnMatched
+        ? cardsByColumnAll.get(columnId) || matchedCards
+        : matchedCards
+
+      const sortedCards = sortCardsByOrder(
+        cardsSource,
+        (column.cardOrderIds || []).map(id => toStringId(id)).filter(Boolean)
+      )
+      return formatColumnWithCards(
+        column,
+        sortedCards,
+        columnMatched,
+        matchedCards.map(card => card._id)
+      )
+    })
+    .filter(Boolean)
 
   return {
     columns: matchedColumns,
     meta: {
-      query: trimmedQuery,
-      totalColumns: matchedColumns.length,
-      totalCards: matchedCardsCount,
+      query: normalizedQuery,
+      project: { _id: project._id.toString(), name: project.name },
+      totalColumns: columns.length,
       matchedColumns: matchedColumns.length,
-      matchedCards: matchedCardsCount,
-      filters: {
-        priority: priorityFilter,
-        dueEnd: dueEndDate ? dueEndDate.toISOString() : null,
-      },
+      totalCards,
+      matchedCards: matchedCardsList.length,
     },
   }
 }
 
-const syncData = async () => {
-  const meiliClient = getMeiliClient()
+export const searchProjects = async (query, userId, filters = {}) => {
+  const normalizedQuery = normalizeQuery(query)
+  if (!normalizedQuery) return []
+
+  const projects = await fetchProjects(buildProjectFilter(userId, filters))
+  const { results } = runFuseSearch({
+    items: projects,
+    query: normalizedQuery,
+    keys: ['name', 'description'],
+    limit: filters.limit,
+    offset: filters.offset,
+  })
+
+  return results.map(mapProjectResult)
+}
+
+export const searchTasks = async (query, userId, filters = {}) => {
+  const normalizedQuery = normalizeQuery(query)
+  if (!normalizedQuery) return []
+
+  const tasks = await fetchTasks(buildTaskFilter(userId, filters))
+  const { results } = runFuseSearch({
+    items: tasks,
+    query: normalizedQuery,
+    keys: ['title', 'description', 'project_id.name'],
+    limit: filters.limit,
+    offset: filters.offset,
+  })
+
+  return results.map(mapTaskResult)
+}
+
+export const searchUsers = async (query, userId, filters = {}) => {
+  const normalizedQuery = normalizeQuery(query)
+  if (!normalizedQuery) return []
+
+  const users = await fetchUsers(userId)
+  const { results } = runFuseSearch({
+    items: users,
+    query: normalizedQuery,
+    keys: ['full_name', 'email'],
+    limit: filters.limit,
+    offset: filters.offset,
+  })
+
+  return results.map(mapUserResult)
+}
+
+export const globalSearch = async (query, userId, options = {}) => {
+  const normalizedQuery = normalizeQuery(query)
+  if (!normalizedQuery) {
+    return { projects: [], tasks: [], users: [], total_results: 0 }
+  }
 
   const [projects, tasks, users] = await Promise.all([
-    projectRepository.getAll({ _destroy: false }),
-    taskRepository.findTasks({}),
-    authRepository.findAllActiveUsers(),
+    searchProjects(normalizedQuery, userId, options),
+    searchTasks(normalizedQuery, userId, options),
+    searchUsers(normalizedQuery, userId, options),
   ])
 
-  const projectDocs = projects.map(toProjectDocument).filter(Boolean)
-  const taskDocs = tasks.map(toTaskDocument).filter(Boolean)
-  const userDocs = users.map(toUserDocument).filter(Boolean)
-
-  const projectIndex = meiliClient.index('projects')
-  await ensureProjectNameSearchableAttribute(projectIndex)
-  await addDocumentsAndWait(projectIndex, projectDocs)
-
-  const taskIndex = meiliClient.index('tasks')
-  await addDocumentsAndWait(taskIndex, taskDocs)
-
-  const userIndex = meiliClient.index('users')
-  await addDocumentsAndWait(userIndex, userDocs)
-
   return {
-    projects: projectDocs.length,
-    tasks: taskDocs.length,
-    users: userDocs.length,
+    projects,
+    tasks,
+    users,
+    total_results: projects.length + tasks.length + users.length,
   }
 }
 
@@ -342,5 +434,4 @@ export const searchService = {
   globalSearch,
   searchUsers,
   searchBoard,
-  syncData,
 }

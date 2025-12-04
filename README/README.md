@@ -15,7 +15,7 @@ IT Task Manager là một hệ thống quản lý dự án và nhiệm vụ toà
 - Quản lý nhiệm vụ với workflow hoàn chỉnh
 - Hệ thống mời thành viên
 - Dashboard thống kê
-- Tìm kiếm toàn cục với MeiliSearch
+- Tìm kiếm toàn cục với Fuse.js (in-memory)
 - Hệ thống thông báo
 - Chat realtime (chuẩn bị)
 
@@ -24,7 +24,7 @@ IT Task Manager là một hệ thống quản lý dự án và nhiệm vụ toà
 - **Runtime**: Node.js (>=18.x)
 - **Framework**: Express.js
 - **Database**: MongoDB với Mongoose ODM
-- **Search Engine**: MeiliSearch
+- **Search Engine**: Fuse.js (in-memory)
 - **Authentication**: JWT (Access Token + Refresh Token)
 - **Validation**: Joi
 - **Documentation**: Swagger
@@ -40,7 +40,6 @@ src/
 ├── config/           # Cấu hình hệ thống
 │   ├── cors.js       # Cấu hình CORS
 │   ├── environment.js # Biến môi trường
-│   ├── meilisearch.js # Cấu hình MeiliSearch
 │   ├── mongodb.js    # Kết nối MongoDB
 │   └── swagger.js    # Cấu hình API docs
 ├── constants/        # Hằng số và thông báo
@@ -87,7 +86,6 @@ src/
 │   ├── notiRepository.js
 │   ├── projectRepository.js
 │   ├── projectRolesRepository.js
-│   ├── searchRepository.js
 │   └── taskRepository.js
 ├── routes/           # Định tuyến API
 │   ├── auth/         # Routes xác thực

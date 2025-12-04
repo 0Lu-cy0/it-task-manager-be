@@ -15,7 +15,6 @@ import { inviteModel } from '~/models/inviteModel'
 import { accessRequestModel } from '~/models/accessRequestModel'
 import { notificationModel } from '~/models/notificationModel'
 import { columnModal } from '~/models/columnModal'
-import { syncProjectToMeili, deleteProjectFromMeili } from '~/repository/searchRepository'
 import { withTransaction } from '~/utils/mongooseHelper'
 
 // Hàm touch để cập nhật last_activity
@@ -141,11 +140,6 @@ const createNew = async data => {
       'member',
       session // ← Truyền session để đọc uncommitted data
     )
-
-    // Sync with MeiliSearch after successful transaction
-    // Pass the session to findOneById to read uncommitted data
-    const fullProject = await projectRepository.findOneById(project._id, { session })
-    await syncProjectToMeili(fullProject)
 
     const result = await projectRepository.findOneById(project._id, { session })
 
@@ -438,8 +432,6 @@ const getProjectLead = async projectId => {
 const deleteProject = async projectId => {
   return await withTransaction(async session => {
     // CASCADE DELETE: Xóa tất cả tasks trong project
-    const tasks = await taskModel.find({ project_id: projectId }).session(session)
-    const taskIds = tasks.map(task => task._id)
     await taskModel.deleteMany({ project_id: projectId }, { session })
 
     // CASCADE DELETE: Xóa tất cả columns trong project
@@ -467,15 +459,6 @@ const deleteProject = async projectId => {
     const result = await projectRepository.softDelete(projectId, { session })
     await touch(projectId, new Date(), { session })
 
-    // Sync with MeiliSearch after successful transaction
-    if (result) {
-      await deleteProjectFromMeili(projectId)
-      // Xóa tasks khỏi MeiliSearch
-      for (const taskId of taskIds) {
-        const { deleteTaskFromMeili } = await import('~/repository/searchRepository')
-        await deleteTaskFromMeili(taskId)
-      }
-    }
     return result
   })
 }
@@ -489,11 +472,6 @@ const updateProject = async (projectId, updateData) => {
     const result = await projectRepository.update(projectId, updateData, { session })
     await touch(projectId, new Date(), { session })
 
-    // Sync with MeiliSearch after successful transaction
-    if (result) {
-      const updatedProject = await projectRepository.findOneById(projectId)
-      await syncProjectToMeili(updatedProject)
-    }
     return result
   })
 }

@@ -3,7 +3,6 @@ import { taskRepository } from '~/repository/taskRepository'
 import { ApiError } from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 import mongoose from 'mongoose'
-import { syncTaskToMeili, deleteTaskFromMeili } from '~/repository/searchRepository'
 import { columnRepository } from '~/repository/columnRepository'
 import { MESSAGES } from '~/constants/messages'
 import { serverLogService } from '~/services/serverLogService'
@@ -41,7 +40,6 @@ const createTask = async data => {
         await columnRepository.addCardToColumn(data.columnId, task._id, null)
       }
       await projectService.touch(data.project_id, task.createdAt, { session })
-      await syncTaskToMeili(task)
     })
     if (task) {
       await logTaskActivity(data.created_by, task.project_id, `Task "${task.title}" created`, {
@@ -70,7 +68,6 @@ const updateTask = async (taskId, updateData, userId) => {
       }
       updatedTask = await taskRepository.updateTask(taskId, updateData, { session })
       await projectService.touch(task.project_id, updatedTask.updatedAt, { session })
-      await syncTaskToMeili(updatedTask)
     })
     if (updatedTask && userId) {
       await logTaskActivity(userId, updatedTask.project_id, `Task "${updatedTask.title}" updated`, {
@@ -104,7 +101,6 @@ const deleteTask = async (taskId, userId) => {
 
       await taskRepository.deleteTask(taskId, { session })
       await projectService.recomputeLastActivity(task.project_id, { session })
-      await deleteTaskFromMeili(taskId)
     })
     if (task && userId) {
       await logTaskActivity(userId, task.project_id, `Task "${task.title}" deleted`, {
@@ -151,7 +147,6 @@ const assignTask = async (taskId, assignData, actorId) => {
       }
       updatedTask = await taskRepository.assignTask(taskId, assignData, { session })
       await projectService.touch(task.project_id, new Date(), { session })
-      await syncTaskToMeili(updatedTask)
     })
     if (updatedTask && actorId) {
       await logTaskActivity(
@@ -192,7 +187,6 @@ const unassignTask = async (taskId, assignData, actorId) => {
       }
       updatedTask = await taskRepository.unassignTask(taskId, assignData, { session })
       await projectService.touch(task.project_id, new Date(), { session })
-      await syncTaskToMeili(updatedTask)
     })
     if (updatedTask && actorId) {
       await logTaskActivity(
@@ -232,7 +226,6 @@ const updateTaskStatus = async (taskId, data, actorId) => {
       previousTask = task
       updatedTask = await taskRepository.updateTaskStatus(taskId, nextStatus, { session })
       await projectService.touch(task.project_id, updatedTask.updatedAt, { session })
-      await syncTaskToMeili(updatedTask)
     })
     if (actorId && previousTask) {
       await logTaskActivity(

@@ -3150,6 +3150,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"fuse.js@npm:^7.0.0":
+  version: 7.1.0
+  resolution: "fuse.js@npm:7.1.0"
+  checksum: 10c0/c0d1b1d192a4bdf3eade897453ddd28aff96b70bf3e49161a45880f9845ebaee97265595db633776700a5bcf8942223c752754a848d70c508c3c9fd997faad1e
+  languageName: node
+  linkType: hard
+
 "generator-function@npm:^2.0.0":
   version: 2.0.1
   resolution: "generator-function@npm:2.0.1"
@@ -4176,13 +4183,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"meilisearch@npm:^0.53.0":
-  version: 0.53.0
-  resolution: "meilisearch@npm:0.53.0"
-  checksum: 10c0/43b008ee424bce0995d5e07ed187f4225513fdbd03a027f62143dc4f8eb9024a93c40e79d3a3fbc8d3a144cf45584f00a7de00a8f64ff5a377aaba41b77d6713
-  languageName: node
-  linkType: hard
-
 "memory-pager@npm:^1.0.2":
   version: 1.5.0
   resolution: "memory-pager@npm:1.5.0"
@@ -4574,10 +4574,10 @@ __metadata:
     eslint-plugin-unused-imports: "npm:^4.1.4"
     express: "npm:^4.18.2"
     express-rate-limit: "npm:^8.0.1"
+    fuse.js: "npm:^7.0.0"
     http-status-codes: "npm:^2.3.0"
     joi: "npm:^17.10.2"
     jsonwebtoken: "npm:^9.0.2"
-    meilisearch: "npm:^0.53.0"
     mongodb: "npm:^6.0.0"
     mongoose: "npm:7.6.3"
     nodemailer: "npm:^7.0.5"
