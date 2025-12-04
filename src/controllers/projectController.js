@@ -44,7 +44,7 @@ const update = async (req, res, next) => {
 const deleteProject = async (req, res, next) => {
   try {
     const { projectId } = req.params
-    const deleted = projectService.deleteProject(projectId)
+    const deleted = await projectService.deleteProject(projectId)
     if (!deleted) {
       res.status(StatusCodes.NOT_FOUND).json({
         status: 'error',
@@ -226,6 +226,22 @@ const toggleFreeMode = async (req, res, next) => {
   }
 }
 
+const toggleFavorite = async (req, res, next) => {
+  try {
+    const { projectId } = req.params
+
+    const result = await projectService.toggleFavorite({ projectId })
+
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: MESSAGES.PROJECT_FAVORITE_UPDATED,
+      data: result,
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
 const reorderColumns = async (req, res, next) => {
   try {
     const { projectId } = req.params
@@ -264,5 +280,6 @@ export const projectController = {
   getAllMembers,
   getProjectLead,
   toggleFreeMode,
+  toggleFavorite,
   reorderColumns,
 }

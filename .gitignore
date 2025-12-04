@@ -68,3 +68,6 @@ meilisearch-*
 binaries/
 data.ms/
 binaries/data.ms/
+
+docs/
+src/scripts/

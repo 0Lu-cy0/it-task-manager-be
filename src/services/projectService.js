@@ -14,7 +14,7 @@ import { taskModel } from '~/models/taskModel'
 import { inviteModel } from '~/models/inviteModel'
 import { accessRequestModel } from '~/models/accessRequestModel'
 import { notificationModel } from '~/models/notificationModel'
-import { columnModal } from '~/models/columnModal'
+import { columnModel } from '~/models/columnModel'
 import { withTransaction } from '~/utils/mongooseHelper'
 
 // Hàm touch để cập nhật last_activity
@@ -435,7 +435,7 @@ const deleteProject = async projectId => {
     await taskModel.deleteMany({ project_id: projectId }, { session })
 
     // CASCADE DELETE: Xóa tất cả columns trong project
-    await columnModal.deleteMany({ project_id: projectId }, { session })
+    await columnModel.deleteMany({ project_id: projectId }, { session })
 
     // CASCADE DELETE: Xóa tất cả invites của project
     await inviteModel.deleteMany({ project_id: projectId }, { session })
@@ -499,6 +499,20 @@ const toggleFreeMode = async ({ projectId, free_mode, currentUserId }) => {
   })
 }
 
+const toggleFavorite = async ({ projectId }) => {
+  return await withTransaction(async session => {
+    const project = await projectRepository.findById(projectId, { session })
+
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
+    }
+
+    const nextLiked = !project.liked
+    const updatedProject = await projectRepository.updateLiked(projectId, nextLiked, { session })
+    return updatedProject
+  })
+}
+
 const reorderColumns = async (projectId, columnOrderIds, currentUserId) => {
   return await withTransaction(async session => {
     // Verify project exists
@@ -538,6 +552,7 @@ export const projectService = {
   verifyProjectPermission,
   updateProject,
   toggleFreeMode,
+  toggleFavorite,
   reorderColumns,
   touch,
   recomputeLastActivity,

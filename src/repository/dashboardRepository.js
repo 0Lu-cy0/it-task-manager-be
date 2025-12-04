@@ -23,7 +23,10 @@ const findAll = async userId => {
 }
 
 const lastProjectActivity = async userId => {
-  return await projectModel.find({ 'members.user_id': userId }).sort({ last_activity: -1 }).limit(5)
+  return await projectModel
+    .find({ _destroy: false, 'members.user_id': userId })
+    .sort({ last_activity: -1 })
+    .limit(5)
 }
 
 const getProjectSummarySnapshot = async (projectId, { sinceDate, dueSoonStart, dueSoonEnd }) => {

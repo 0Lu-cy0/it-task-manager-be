@@ -88,6 +88,8 @@ router.patch(
   projectMiddleware.checkIsOwner,
   projectController.toggleFreeMode
 )
+// Project đánh dấu sao
+router.patch('/:projectId/favorite', projectController.toggleFavorite)
 
 /**
  * Reorder columns in project

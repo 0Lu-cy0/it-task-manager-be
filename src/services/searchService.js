@@ -3,7 +3,7 @@ import mongoose from 'mongoose'
 import { StatusCodes } from 'http-status-codes'
 import { projectModel } from '~/models/projectModel'
 import { taskModel } from '~/models/taskModel'
-import { ColumnModel } from '~/models/columnModal'
+import { columnModel } from '~/models/columnModel'
 import { authModel } from '~/models/authModel'
 import ApiError from '~/utils/ApiError'
 import { MESSAGES } from '~/constants/messages'
@@ -249,7 +249,7 @@ export const searchBoard = async (projectId, userId, query, filters = {}) => {
   }
 
   const project = await ensureProjectAccess(projectId, userId)
-  const columns = await ColumnModel.find({ project_id: projectId }).lean()
+  const columns = await columnModel.find({ project_id: projectId }).lean()
 
   let tasks = await taskModel
     .find({ project_id: projectId, _destroy: false })

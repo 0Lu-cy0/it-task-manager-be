@@ -4,7 +4,7 @@ import { StatusCodes } from 'http-status-codes'
 import { MESSAGES } from '~/constants/messages'
 import { projectRolesModel } from '~/models/projectRolesModel'
 import { getPermissionId } from '~/utils/permission'
-import { ColumnModel } from '~/models/columnModal'
+import { columnModel } from '~/models/columnModel'
 
 const createNew = async (data, options = {}) => {
   const result = await projectModel.create([data], options)
@@ -65,10 +65,7 @@ const reorderColumns = async (projectId, columnOrderIds, options = {}) => {
   }
 
   // Lấy danh sách column IDs từ database
-  const existingColumns = await ColumnModel
-    .find({ project_id: projectId })
-    .select('_id')
-    .lean()
+  const existingColumns = await columnModel.find({ project_id: projectId }).select('_id').lean()
 
   const projectColumnIds = existingColumns.map(col => col._id.toString())
   const orderIds = columnOrderIds.map(id => id.toString())
@@ -253,6 +250,24 @@ const updateFreeMode = async (projectId, freeModeValue, options = {}) => {
   return project
 }
 
+const updateLiked = async (projectId, likedValue, options = {}) => {
+  const updatedProject = await projectModel
+    .findOneAndUpdate(
+      { _id: projectId, _destroy: false },
+      { liked: likedValue },
+      { new: true, ...options }
+    )
+    .select('_id name liked')
+    .lean()
+    .exec()
+
+  if (!updatedProject) {
+    throw new ApiError(StatusCodes.NOT_FOUND, MESSAGES.PROJECT_NOT_FOUND)
+  }
+
+  return updatedProject
+}
+
 const addColumn = async (projectId, columnId, options = {}) => {
   const project = await projectModel.findById(projectId).session(options.session || null)
   if (!project || project._destroy) {
@@ -316,6 +331,7 @@ export const projectRepository = {
   updateMemberRole,
   checkUserPermission,
   updateFreeMode,
+  updateLiked,
   findById,
   findByIds,
 }

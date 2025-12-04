@@ -15,7 +15,6 @@ const checkProjectPermission = permission => {
         userId,
         permission
       )
-      console.log('✅ [checkProjectPermission] hasPermission:', hasPermission)
 
       if (!hasPermission) {
         return next(new ApiError(StatusCodes.FORBIDDEN, MESSAGES.FORBIDDEN))

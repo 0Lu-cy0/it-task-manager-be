@@ -2,7 +2,7 @@ import mongoose from 'mongoose'
 import { CONNECT_DB, CLOSE_DB } from '../config/mongodb'
 import { projectModel } from '../models/projectModel'
 import { taskModel } from '../models/taskModel'
-import { ColumnModel } from '../models/columnModal'
+import { ColumnModel } from '../models/columnModel'
 
 async function run() {
   await CONNECT_DB()

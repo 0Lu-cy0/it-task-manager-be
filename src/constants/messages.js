@@ -3,6 +3,7 @@ export const MESSAGES = {
   PROJECT_CREATED: 'Dự án được tạo thành công',
   PROJECT_UPDATED: 'Dự án được cập nhật thành công',
   PROJECT_DELETED: 'Dự án được xóa thành công',
+  PROJECT_FAVORITE_UPDATED: 'Cập nhật trạng thái đánh dấu sao thành công',
   PROJECT_NOT_FOUND: 'Dự án không tồn tại hoặc đã bị xóa',
   PROJECT_ID_REQUIRED: 'Project ID là bắt buộc',
   PROJECT_ID_INVALID: 'Project ID không hợp lệ',

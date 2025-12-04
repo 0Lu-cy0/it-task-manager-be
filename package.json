@@ -19,7 +19,8 @@
     "debug": "node inspect ./src/server.js",
     "migrate:check-viewer": "babel-node src/scripts/check-viewer-role.js",
     "migrate:remove-viewer": "babel-node src/scripts/migrate-remove-viewer-role.js",
-    "migrate:cleanup-orphaned": "babel-node src/scripts/cleanup-orphaned-viewer-roles.js"
+    "migrate:cleanup-orphaned": "babel-node src/scripts/cleanup-orphaned-viewer-roles.js",
+    "migrate:add-liked": "babel-node src/scripts/migrate-add-liked-field.js"
   },
   "dependencies": {
     "@babel/runtime": "^7.22.10",

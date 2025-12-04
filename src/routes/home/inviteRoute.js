@@ -16,11 +16,7 @@ router.get('/me', inviteController.getUserInvites)
 
 // Lấy permanent invite link của project
 // GET /invites/projects/:projectId/permanent-link
-router.get(
-  '/projects/:projectId/permanent-link',
-  projectMiddleware.checkProjectPermission('add_member'),
-  inviteController.getPermanentInvite
-)
+router.get('/projects/:projectId/permanent-link', inviteController.getPermanentInvite)
 
 // Lấy danh sách lời mời qua email của project
 // GET /invites/projects/:projectId/emails
