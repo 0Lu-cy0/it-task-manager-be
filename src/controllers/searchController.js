@@ -94,7 +94,7 @@ const searchBoard = async (req, res, next) => {
 
     const filters = {
       dueEnd: typeof dueEnd === 'string' ? dueEnd : undefined,
-      priorityFilter: parseArrayParam(priority),
+      priority: parseArrayParam(priority),
     }
 
     const results = await searchService.searchBoard(projectId, userId, q, filters)
@@ -104,26 +104,6 @@ const searchBoard = async (req, res, next) => {
       data: results.columns,
       meta: results.meta,
       query: q,
-    })
-  } catch (error) {
-    next(error)
-  }
-}
-
-const searchBoard = async (req, res, next) => {
-  try {
-    const { projectId } = req.params
-    const { q, priority, dueEnd } = req.query
-    const userId = req.user._id.toString()
-
-    const results = await searchService.searchBoard(projectId, userId, q, {
-      priority,
-      dueEnd,
-    })
-
-    res.status(200).json({
-      status: 'success',
-      data: results,
     })
   } catch (error) {
     next(error)
